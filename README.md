@@ -7,8 +7,9 @@ Licence: `MIT OR Apache-2.0`.
 
 ## What runs today
 
-Version 0.1 is a set of engines and a command line. There is no graphical app yet, and nothing here
-is certified or fit for safety-critical use.
+Version 0.1 is a set of engines, a command line and a first desktop app that opens, checks and
+simulates circuits. The app has no schematic editor yet: you cannot draw or change a circuit in it,
+and nothing here is certified or fit for safety-critical use.
 
 ```console
 $ circuito sim examples/divider.circuito
@@ -34,19 +35,26 @@ $ circuito gerber examples/sample-board.circuito-pcb --out out/
 * **PCB** (`circuito-pcb`): board model, exact-geometry design-rules check, Gerber RS-274X/X2,
   Excellon drill, pick-and-place and BOM CSV.
 * **CLI** (`circuito`): `sim`, `erc`, `netlist`, `drc`, `gerber`; table, CSV or JSON output.
+* **App** (`circuito-app`, egui with the Nodalia Design Language): opens a `.circuito` schematic or
+  a SPICE deck (also by drag and drop), draws the schematic with pan and zoom, lists the rules-check
+  findings (a click selects the part or wire), runs `.op`, `.ac`, `.tran` and `.dc` on a worker
+  thread with progress and cancel, and shows the operating point and plots with engineering units
+  and a logarithmic frequency axis. English and Spanish, light and dark. The rules-check messages
+  come from the engine and are shown in English.
 
 What the engines were checked against is written in each crate's README. Simulation results were
 compared with analytic solutions and the published model equations, not with another simulator.
 The Gerber and Excellon files were read back by our own readers, not opened in an external viewer.
 
-What does not exist yet (see [`ROADMAP.md`](ROADMAP.md)): the egui app and its schematic and PCB
-editors, `.noise`, `.step` and Monte Carlo, zone fill, autorouting, 3D board, PLC and FPGA tools.
+What does not exist yet (see [`ROADMAP.md`](ROADMAP.md)): the schematic editor (the app only views
+what it opens), the PCB editor, `.noise`, `.step` and Monte Carlo, zone fill, autorouting, 3D board, PLC and FPGA tools.
 
 ## Build and test
 
 ```bash
 cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked
 cargo run -p circuito-cli -- sim examples/rc-lowpass.cir
+cargo run -p circuito-app -- examples/rc-lowpass.cir   # the app (Linux needs libxkbcommon-x11-0 and libegl1)
 ```
 
 ## Layout
@@ -59,6 +67,7 @@ cargo run -p circuito-cli -- sim examples/rc-lowpass.cir
 | `crates/circuito-erc` | Netlist extraction and the electrical rules check |
 | `crates/circuito-pcb` | Board model, DRC, Gerber, Excellon, assembly outputs |
 | `apps/circuito-cli` | The `circuito` command |
+| `apps/circuito` | The egui app (`circuito-app`); its logic is a testable library, the windows are the binary |
 | `examples/` | Small circuits and a sample board used by the tests |
 
 Rules for contributors and agents: [`AGENTS.md`](AGENTS.md). Security: [`SECURITY.md`](SECURITY.md).

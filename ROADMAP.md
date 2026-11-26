@@ -15,7 +15,8 @@ functional, validated (against analytic or published references), production-mat
 | Gerber and Excellon output | Experimental: round-trips through our own readers; not opened in an external CAM viewer |
 | CLI: `sim`, `erc`, `netlist` | Functional on Linux |
 | CLI: `drc`, `gerber` | Functional on Linux; the sample board is DRC-clean, its Gerber files were read back by our own reader only |
-| egui app, schematic editor, PCB editor | Planned |
+| egui app: open, view, rules check, simulate, plots | Partially functional; checked by hand under a virtual display on Linux only |
+| Schematic editor, PCB editor | Planned |
 | `.noise`, `.step`, Monte Carlo, `.ic`/`.nodeset` | Planned |
 | Zone fill, autorouting, differential-pair rules | Planned |
 | Comparison with another simulator's output | Not done |
@@ -23,7 +24,7 @@ functional, validated (against analytic or published references), production-mat
 
 ## Next
 
-1. The egui app with NDL: schematic view, simulation panel with plots, ERC list.
+1. Schematic editing in the app (place, wire, edit values, undo), then a PCB view.
 2. Validate Gerber output with an external viewer and publish the result here.
 3. Simulation: `.step`, `.noise`, Gummel-Poon, temperature scaling.
 4. PCB editor, zone fill, routing aids.

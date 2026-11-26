@@ -26,7 +26,7 @@ what does not exist yet; planned features are never described as existing.
 | `crates/circuito-erc` | Netlist extraction from a schematic and the electrical rules check |
 | `crates/circuito-pcb` | Board model, design rules check, Gerber RS-274X/X2 and Excellon output |
 | `apps/circuito-cli` | Headless `circuito` command: `sim`, `erc`, `netlist`, `drc`, `gerber` |
-| `apps/circuito` | The egui app |
+| `apps/circuito` | The egui app (`circuito-app`): a library of testable logic (documents, findings, plots, settings, i18n) and the windows in the binary |
 
 Dependencies point down: engines never use egui, eframe or winit, and no engine blocks on I/O it
 was not asked to do. Anything a headless client (the CLI, a script, another Nodalia app) also needs
@@ -38,7 +38,7 @@ crate when a second consumer exists, and a module of an existing crate before th
 ```bash
 cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked   # the CI gate
 cargo run -p circuito-cli -- sim examples/rc-lowpass.cir   # headless
-cargo run -p circuito                                         # the app
+cargo run -p circuito-app -- examples/rc-lowpass.cir         # the app
 ```
 
 Linux needs `libxkbcommon-x11-0` and `libegl1` at run time to run the app. Tests need no display,
