@@ -255,6 +255,38 @@ fn diode_rectifier_peaks_one_diode_drop_below_the_source_and_holds_the_charge() 
     assert!(floor > 0.8 * peak, "floor {floor} peak {peak}");
 }
 
+// ---- circuits written as code -----------------------------------------------------------------
+
+#[test]
+fn a_circuit_written_as_code_simulates_like_the_drawn_one() {
+    let o = run(&["sim", &example("divider.circ"), "--csv"]);
+    assert_eq!(code(&o), 0, "{}", errtext(&o));
+    let (_, h, rows) = &csv_sections(&out(&o))[0];
+    assert!(rel(rows[0][col(h, "V(out)")], 6.875) < 1e-9);
+    assert!(rel(rows[0][col(h, "I(R1)")], 3.125e-3) < 1e-9);
+}
+
+#[test]
+fn code_is_checked_and_turned_into_a_netlist() {
+    let o = run(&["erc", &example("common-emitter.circ")]);
+    assert_eq!(code(&o), 0, "{}", out(&o));
+    let n = run(&["netlist", &example("divider.circ")]);
+    assert_eq!(code(&n), 0, "{}", errtext(&n));
+    assert!(out(&n).contains("R1"), "{}", out(&n));
+}
+
+#[test]
+fn a_mistake_in_code_names_the_line() {
+    let o = run_stdin(&["erc", "-"], b"R1 1k a\n");
+    // Standard input is read as a schematic in JSON, so code there is refused with a reason.
+    assert_ne!(code(&o), 0);
+    let bad = scratch("bad.circ");
+    std::fs::write(&bad, "V1 5 in gnd\nR1 1k in out extra\nop\n").unwrap();
+    let o = run(&["sim", &bad.to_string_lossy()]);
+    assert_eq!(code(&o), 1, "{}", errtext(&o));
+    assert!(errtext(&o).contains("line 2"), "{}", errtext(&o));
+}
+
 // ---- erc and netlist --------------------------------------------------------------------------
 
 #[test]

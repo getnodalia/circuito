@@ -22,12 +22,16 @@
 
 pub mod commands;
 pub mod document;
+pub mod editing;
 pub mod findings;
 pub mod format;
 pub mod geometry;
+pub mod hit;
 pub mod i18n;
 pub mod icon;
+pub mod parts;
 pub mod plot;
+pub mod script;
 pub mod settings;
 pub mod sim;
 mod spanish;

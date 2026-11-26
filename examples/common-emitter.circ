@@ -1,0 +1,14 @@
+# A common-emitter amplifier. Transistor pins are named, so their order cannot be wrong.
+title Common-emitter amplifier
+
+V1  12      vcc gnd
+Vin "SIN(0.7 5m 1k) AC 1"  in gnd
+R1  47k     vcc base
+R2  10k     base gnd
+RC  2.2k    vcc out
+RE  470     emit gnd
+Q1:NPN  c=out b=base e=emit
+C1  10u     in base
+
+op
+ac dec 10 10 1meg

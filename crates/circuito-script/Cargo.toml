@@ -1,0 +1,20 @@
+[package]
+name = "circuito-script"
+description = "Circuito's circuit description language: a short text form of a schematic, with a parser, a printer and an automatic layout"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+circuito-core = { path = "../circuito-core" }
+
+[dev-dependencies]
+circuito-erc = { path = "../circuito-erc" }
+circuito-sim = { path = "../circuito-sim" }
+proptest.workspace = true
+
+[lints]
+workspace = true

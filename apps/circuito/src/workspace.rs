@@ -7,16 +7,28 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
+use circuito_core::edit::{History, Items};
 use circuito_core::library::Library;
 use circuito_core::netlist::Analysis;
-use circuito_core::schematic::Rotation;
+use circuito_core::schematic::{Rotation, Schematic};
 use circuito_erc::Severity;
 use circuito_sim::AnalysisResult;
 
 use crate::document::{Circuit, Kind};
+use crate::editing::{Gesture, Ghost, Tool};
 use crate::geometry::{self, Selection, View};
 use crate::plot::{self, Plot};
+use crate::script::Script;
 use crate::sim::{Outcome, Reply, Runner};
+
+/// The left panel's pages.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Side {
+    /// The parts to draw with.
+    Parts,
+    /// The sheets, parts and analyses of the open circuit.
+    Navigator,
+}
 
 /// What the centre of the window shows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -87,6 +99,22 @@ pub struct Open {
     pub analysis: usize,
     pub hidden: HashSet<String>,
     plot: Option<Arc<Plot>>,
+    /// What the person has selected on the shown sheet, for editing.
+    pub items: Items,
+    /// The drawing as it was before each edit, to go back to.
+    pub history: History<Schematic>,
+    /// Counts the edits (and undos) made.
+    pub rev: u64,
+    /// The value of `rev` the file on disk has.
+    pub saved_rev: u64,
+    /// The value of `rev` the rules check, netlist and results were made from.
+    pub derived_rev: u64,
+    /// The analyses should run again once the pointer is up.
+    pub run_pending: bool,
+    /// The text form of the drawing.
+    pub script: Script,
+    /// What the pointer is in the middle of on the drawing.
+    pub gesture: Gesture,
 }
 
 /// A part, as the properties panel lists it.
@@ -125,6 +153,14 @@ impl Open {
             analysis: 0,
             hidden: HashSet::new(),
             plot: None,
+            items: Items::new(),
+            history: History::default(),
+            rev: 0,
+            saved_rev: 0,
+            derived_rev: 0,
+            run_pending: false,
+            script: Script::new(),
+            gesture: Gesture::Idle,
         }
     }
 
@@ -157,7 +193,7 @@ impl Open {
         self.plot.clone()
     }
 
-    fn invalidate_plot(&mut self) {
+    pub(crate) fn invalidate_plot(&mut self) {
         self.plot = None;
     }
 
@@ -218,6 +254,12 @@ pub struct Workspace {
     next_id: u64,
     pub tab: Tab,
     pub bottom: Bottom,
+    /// What a click on the drawing does.
+    pub tool: Tool,
+    /// The turn and mirroring of what the tool places.
+    pub ghost: Ghost,
+    /// Which of the left panel's pages shows.
+    pub side: Side,
     runner: Option<Runner>,
 }
 
@@ -229,12 +271,26 @@ impl Workspace {
             next_id: 1,
             tab: Tab::Schematic,
             bottom: Bottom::Simulation,
+            tool: Tool::default(),
+            ghost: Ghost::default(),
+            side: Side::Parts,
             runner,
         }
     }
 
+    /// Take the shown circuit out of the workspace (tests of what happens to one circuit).
+    #[cfg(test)]
+    pub(crate) fn take_active_for_test(&mut self) -> Open {
+        let i = self.active_index().unwrap_or(0);
+        self.docs.remove(i)
+    }
+
     pub fn docs(&self) -> &[Open] {
         &self.docs
+    }
+
+    pub fn docs_mut(&mut self) -> &mut [Open] {
+        &mut self.docs
     }
 
     pub fn active_index(&self) -> Option<usize> {
@@ -339,6 +395,12 @@ impl Workspace {
 
     pub fn select(&mut self, selection: Option<Selection>) {
         if let Some(doc) = self.active_mut() {
+            doc.items = match selection {
+                Some(Selection::Part { part, .. }) => {
+                    circuito_core::edit::Items::from([circuito_core::edit::Item::Part(part)])
+                }
+                _ => circuito_core::edit::Items::new(),
+            };
             doc.selection = selection;
             doc.finding = None;
             if let Some(s) = selection {
@@ -368,6 +430,12 @@ impl Workspace {
         let centre = target.and_then(|t| geometry::centre_of(schematic, t));
         doc.finding = Some(index);
         doc.selection = target;
+        doc.items = match target {
+            Some(Selection::Part { part, .. }) => {
+                circuito_core::edit::Items::from([circuito_core::edit::Item::Part(part)])
+            }
+            _ => circuito_core::edit::Items::new(),
+        };
         if let Some(t) = target {
             doc.sheet = t.sheet();
         }

@@ -27,8 +27,8 @@ circuito: simulate circuits, check schematics and boards, export netlists and Ge
 
 USAGE
   circuito sim <file> [--format table|csv|json] [-o <out>] [-a <n>]
-  circuito erc <file.circuito> [--json] [--deny-warnings]
-  circuito netlist <file.circuito> [-o <out>]
+  circuito erc <file.circuito|file.circ> [--json] [--deny-warnings]
+  circuito netlist <file.circuito|file.circ> [-o <out>]
   circuito drc <board.circuito-pcb> [--profile <name>] [--json] [--deny-warnings]
   circuito gerber <board.circuito-pcb> --out <dir>
   circuito --help | --version
@@ -241,9 +241,9 @@ fn cmd_erc(
         Ok(t) => t,
         Err(e) => return fail(err, &e),
     };
-    let schematic = match circuito_core::schematic::Schematic::from_json(&text) {
+    let schematic = match load::schematic_from_text(file, &text) {
         Ok(s) => s,
-        Err(e) => return fail(err, &format!("{file}: {e}")),
+        Err(e) => return fail(err, &e),
     };
     let report = circuito_erc::check(&schematic);
     let (errors, warnings) = (

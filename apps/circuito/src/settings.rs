@@ -40,6 +40,8 @@ pub struct Settings {
     pub show_navigator: bool,
     pub show_properties: bool,
     pub show_results: bool,
+    /// The circuit's text form beside the drawing.
+    pub show_script: bool,
     /// The sample circuit was opened on the first launch.
     pub sample_shown: bool,
     pub recent: Vec<PathBuf>,
@@ -58,6 +60,7 @@ impl Default for Settings {
             show_navigator: true,
             show_properties: true,
             show_results: true,
+            show_script: true,
             sample_shown: false,
             recent: Vec::new(),
         }

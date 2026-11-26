@@ -1,0 +1,8 @@
+# A resistor divider written as code. Open it in Circuito to see it drawn and edit either side.
+title Resistor divider
+
+V1 10     in  gnd      # a part, its value, then one net per pin
+R1 1k     in  out
+R2 2.2k   out gnd
+
+op                     # the analysis to run

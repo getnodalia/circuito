@@ -1,0 +1,9 @@
+# The same RC low-pass filter as rc-lowpass.cir, written as code.
+title RC low-pass filter, fc = 1/(2 pi R C) = 1.59 kHz
+
+V1 "PULSE(0 1 0 1n 1n 5m 10m) AC 1"  in gnd   # a value with spaces goes in quotes
+R1 1k    in  out
+C1 100n  out gnd
+
+ac dec 10 10 100k
+tran 10u 1m

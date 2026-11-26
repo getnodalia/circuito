@@ -16,7 +16,9 @@ functional, validated (against analytic or published references), production-mat
 | CLI: `sim`, `erc`, `netlist` | Functional on Linux |
 | CLI: `drc`, `gerber` | Functional on Linux; the sample board is DRC-clean, its Gerber files were read back by our own reader only |
 | egui app: open, view, rules check, simulate, plots | Partially functional; checked by hand under a virtual display on Linux only |
-| Schematic editor, PCB editor | Planned |
+| Circuit code (`.circ`): text to drawing and back | Functional; round-trips and simulates like the drawn circuit in tests, random text never panics |
+| Schematic editor: place, wire, move, rotate, mirror, edit, copy/paste, undo, save | Partially functional; the editing steps are unit-tested, the mouse interactions were checked by hand under a virtual display on Linux only; one sheet at a time |
+| PCB editor | Planned |
 | `.noise`, `.step`, Monte Carlo, `.ic`/`.nodeset` | Planned |
 | Zone fill, autorouting, differential-pair rules | Planned |
 | Comparison with another simulator's output | Not done |
@@ -24,7 +26,8 @@ functional, validated (against analytic or published references), production-mat
 
 ## Next
 
-1. Schematic editing in the app (place, wire, edit values, undo), then a PCB view.
+1. A PCB view and editor; sheet management and hierarchy in the schematic editor, wire dragging
+   with live rerouting, and your own parts.
 2. Validate Gerber output with an external viewer and publish the result here.
 3. Simulation: `.step`, `.noise`, Gummel-Poon, temperature scaling.
 4. PCB editor, zone fill, routing aids.

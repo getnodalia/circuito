@@ -11,10 +11,12 @@ use std::time::Duration;
 
 use circuito_app::commands::Cmd;
 use circuito_app::document::{self, Circuit, Sample};
+use circuito_app::editing::Tool;
 use circuito_app::i18n::{self, tr, trf, Lang};
 use circuito_app::settings::{Appearance, Settings};
 use circuito_app::sim::Runner;
 use circuito_app::workspace::{Bottom, RunError, Tab, Which, Workspace};
+use circuito_core::edit::Clip;
 use nodalia_theme::engineering::{self as eng, Look};
 use nodalia_theme::for_egui::{self, Appearance as NdlAppearance};
 use nodalia_theme::{Accent, Mode};
@@ -29,6 +31,17 @@ pub enum Overlay {
     Preferences,
     Shortcuts(String),
     About,
+    /// A circuit with changes the file does not have is about to go.
+    Unsaved(Pending),
+}
+
+/// What waits for the answer about unsaved changes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Pending {
+    /// Close the circuit with this id.
+    Close(u64),
+    /// Quit the application.
+    Quit,
 }
 
 pub struct Toast {
@@ -52,6 +65,17 @@ enum Msg {
         target: Target,
         result: Box<Result<Circuit, String>>,
     },
+    /// The name chosen for a circuit that has none (or a new one).
+    SavePicked {
+        id: u64,
+        path: Option<PathBuf>,
+    },
+    Saved {
+        id: u64,
+        path: PathBuf,
+        rev: u64,
+        result: Result<(), String>,
+    },
 }
 
 pub struct App {
@@ -68,6 +92,15 @@ pub struct App {
     tx: Sender<Msg>,
     rx: Receiver<Msg>,
     dialog_open: bool,
+    /// What was copied on the drawing, and how many times it was pasted since.
+    clip: Clip,
+    pasted: i32,
+    /// What to do once the circuit being saved is on disk.
+    after_save: Option<Pending>,
+    /// What is typed in the parts palette's search field.
+    pub part_filter: String,
+    /// The window may close: nothing is left to ask about.
+    quitting: bool,
     applied: Option<(Appearance, bool, bool)>,
     decorated: Option<bool>,
     #[cfg(target_os = "linux")]
@@ -104,6 +137,11 @@ impl App {
             tx,
             rx,
             dialog_open: false,
+            clip: Clip::default(),
+            pasted: 0,
+            after_save: None,
+            part_filter: String::new(),
+            quitting: false,
             applied: None,
             decorated: None,
             #[cfg(target_os = "linux")]
@@ -251,6 +289,7 @@ impl App {
         let filter = tr("Circuits and SPICE decks");
         let extensions: Vec<&str> = document::SCHEMATIC_EXTENSIONS
             .iter()
+            .chain(document::SCRIPT_EXTENSIONS.iter())
             .chain(document::SPICE_EXTENSIONS.iter())
             .copied()
             .collect();
@@ -307,6 +346,198 @@ impl App {
         }
     }
 
+    // --- Saving -------------------------------------------------------------------------------
+
+    /// Save circuit `id`; ask for a name first when it has none (or `as_new`).
+    pub fn save_doc(&mut self, id: u64, as_new: bool) {
+        let now = self.ctx.input(|i| i.time);
+        let Some(doc) = self.ws.docs_mut().iter_mut().find(|d| d.id == id) else {
+            return;
+        };
+        if !doc.editable() {
+            self.after_save = None;
+            self.toast(tr("Only drawn circuits can be saved here."));
+            return;
+        }
+        // What is in the code pane counts, even if the person has not paused yet.
+        doc.script_settle(now, true);
+        if !doc.script.is_clean() {
+            self.after_save = None;
+            self.toast(tr("Fix the problems in the code first."));
+            return;
+        }
+        doc.refresh();
+        let known = doc
+            .circuit
+            .path
+            .clone()
+            .filter(|p| document::is_writable_extension(p));
+        match known {
+            Some(path) if !as_new => self.write(id, path),
+            other => self.pick_save(id, other),
+        }
+    }
+
+    fn pick_save(&mut self, id: u64, current: Option<PathBuf>) {
+        if self.dialog_open {
+            return;
+        }
+        self.dialog_open = true;
+        let tx = self.tx.clone();
+        let ctx = self.ctx.clone();
+        let title = tr("Save the circuit");
+        let name = self
+            .ws
+            .docs()
+            .iter()
+            .find(|d| d.id == id)
+            .map(|d| d.circuit.name())
+            .unwrap_or_default();
+        let name = Path::new(&name)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map_or_else(|| tr("Circuit").to_owned(), str::to_owned);
+        let (drawn, text) = (tr("Circuit"), tr("Circuit as code"));
+        let spawned = std::thread::Builder::new()
+            .name("save-dialog".into())
+            .spawn(move || {
+                let mut dialog = rfd::AsyncFileDialog::new()
+                    .set_title(title)
+                    .set_file_name(format!("{name}.circuito"))
+                    .add_filter(drawn, &document::SCHEMATIC_EXTENSIONS)
+                    .add_filter(text, &document::SCRIPT_EXTENSIONS);
+                if let Some(dir) = current.as_deref().and_then(Path::parent) {
+                    dialog = dialog.set_directory(dir);
+                }
+                let picked = pollster::block_on(dialog.save_file())
+                    .map(|f| document::with_extension_if_missing(f.path()));
+                let _ = tx.send(Msg::SavePicked { id, path: picked });
+                ctx.request_repaint();
+            });
+        if spawned.is_err() {
+            self.dialog_open = false;
+            self.after_save = None;
+            self.toast(tr("Could not open the file dialog."));
+        }
+    }
+
+    /// Write circuit `id` to `path` on a thread of its own, through a temporary sibling.
+    fn write(&mut self, id: u64, path: PathBuf) {
+        let Some(doc) = self.ws.docs().iter().find(|d| d.id == id) else {
+            self.after_save = None;
+            return;
+        };
+        let rev = doc.rev;
+        let text = match doc.circuit.schematic.as_ref() {
+            Some(s) => document::serialise(s, &path),
+            None => Err(tr("There is no drawing to save.").to_owned()),
+        };
+        let text = match text {
+            Ok(t) => t,
+            Err(e) => {
+                self.after_save = None;
+                self.toast(trf(
+                    "Could not save {}: {}",
+                    &[&document::file_name(&path), &e],
+                ));
+                return;
+            }
+        };
+        let tx = self.tx.clone();
+        let ctx = self.ctx.clone();
+        let target = path.clone();
+        let spawned = std::thread::Builder::new()
+            .name("save-file".into())
+            .spawn(move || {
+                let result = document::write_atomically(&target, &text);
+                let _ = tx.send(Msg::Saved {
+                    id,
+                    path: target,
+                    rev,
+                    result,
+                });
+                ctx.request_repaint();
+            });
+        if spawned.is_err() {
+            self.after_save = None;
+            self.toast(tr("Could not start saving."));
+        }
+    }
+
+    fn saved(&mut self, id: u64, path: PathBuf, rev: u64, result: Result<(), String>) {
+        let name = document::file_name(&path);
+        if let Err(e) = result {
+            self.after_save = None;
+            self.toast(trf("Could not save {}: {}", &[&name, &e]));
+            return;
+        }
+        if let Some(doc) = self.ws.docs_mut().iter_mut().find(|d| d.id == id) {
+            doc.saved_rev = rev;
+            doc.circuit.path = Some(path.clone());
+            doc.circuit.sample = None;
+        }
+        self.settings.remember(&path);
+        self.save_settings();
+        self.toast(trf("Saved {}", &[&name]));
+        match self.after_save.take() {
+            Some(Pending::Close(close)) if close == id => self.close_id(id),
+            _ => {}
+        }
+    }
+
+    /// Close circuit `id` without asking.
+    fn close_id(&mut self, id: u64) {
+        if let Some(i) = self.ws.docs().iter().position(|d| d.id == id) {
+            self.ws.close(i);
+            if self.ws.docs().is_empty() {
+                self.home = true;
+            }
+        }
+    }
+
+    /// Close circuit `id`, asking first when it has changes the file does not.
+    pub fn request_close(&mut self, id: u64) {
+        let dirty = self
+            .ws
+            .docs()
+            .iter()
+            .find(|d| d.id == id)
+            .is_some_and(|d| d.dirty());
+        if dirty {
+            self.overlay = Overlay::Unsaved(Pending::Close(id));
+        } else {
+            self.close_id(id);
+        }
+    }
+
+    /// Quit, asking first when something would be lost.
+    fn request_quit(&mut self) {
+        if self.ws.docs().iter().any(|d| d.dirty()) {
+            self.overlay = Overlay::Unsaved(Pending::Quit);
+        } else {
+            self.quit_now();
+        }
+    }
+
+    fn quit_now(&mut self) {
+        self.quitting = true;
+        self.ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+    }
+
+    /// The answer "save" to the question about closing one circuit.
+    pub fn save_then_close(&mut self, id: u64) {
+        self.after_save = Some(Pending::Close(id));
+        self.save_doc(id, false);
+    }
+
+    /// The answer "discard" to the question about unsaved changes.
+    pub fn discard(&mut self, pending: Pending) {
+        match pending {
+            Pending::Close(id) => self.close_id(id),
+            Pending::Quit => self.quit_now(),
+        }
+    }
+
     fn poll(&mut self) {
         if self.ws.poll() {
             self.ctx.request_repaint();
@@ -327,6 +558,19 @@ impl App {
                     self.loading = self.loading.saturating_sub(1);
                     self.loaded(path, target, *result);
                 }
+                Msg::SavePicked { id, path } => {
+                    self.dialog_open = false;
+                    match path {
+                        Some(path) => self.write(id, path),
+                        None => self.after_save = None,
+                    }
+                }
+                Msg::Saved {
+                    id,
+                    path,
+                    rev,
+                    result,
+                } => self.saved(id, path, rev, result),
             }
         }
     }
@@ -384,6 +628,31 @@ impl App {
         }
     }
 
+    /// The shown circuit, when it is one that can be drawn on.
+    fn editable(&mut self) -> Option<&mut circuito_app::workspace::Open> {
+        if self.ws.tab() != Tab::Schematic {
+            return None;
+        }
+        self.ws.active_mut().filter(|d| d.editable())
+    }
+
+    /// Carry out a change from the properties panel; a refusal is said in a toast.
+    pub fn apply(&mut self, action: circuito_app::editing::Action) {
+        let result = self.ws.active_mut().map(|d| d.apply(action));
+        if let Some(Err(message)) = result {
+            self.toast(message);
+        }
+    }
+
+    /// Choose what a click on the drawing does.
+    pub fn use_tool(&mut self, tool: Tool) {
+        if self.ws.active().is_some_and(|d| d.editable()) {
+            self.ws.tab = Tab::Schematic;
+            self.home = false;
+            self.ws.tool = tool;
+        }
+    }
+
     fn zoom(&mut self, factor: f32) {
         if let Some(doc) = self.ws.active_mut() {
             doc.view = doc.view.zoomed_at(factor, (1.0, 1.0), (2.0, 2.0));
@@ -418,13 +687,92 @@ impl App {
                 }
             }
             Cmd::CloseDocument => {
-                if let Some(i) = self.ws.active_index() {
-                    self.ws.close(i);
-                    if self.ws.docs().is_empty() {
-                        self.home = true;
+                if let Some(id) = self.ws.active().map(|d| d.id) {
+                    self.request_close(id);
+                }
+            }
+            Cmd::New => {
+                self.ws.open(Circuit::blank());
+                self.opened();
+                self.ws.tab = Tab::Schematic;
+            }
+            Cmd::Save | Cmd::SaveAs => {
+                if let Some(id) = self.ws.active().map(|d| d.id) {
+                    self.save_doc(id, cmd == Cmd::SaveAs);
+                }
+            }
+            Cmd::Undo => {
+                if let Some(doc) = self.editable() {
+                    if doc.undo().is_none() {
+                        self.toast(tr("Nothing to undo."));
                     }
                 }
             }
+            Cmd::Redo => {
+                if let Some(doc) = self.editable() {
+                    if doc.redo().is_none() {
+                        self.toast(tr("Nothing to redo."));
+                    }
+                }
+            }
+            Cmd::Cut | Cmd::Copy => {
+                if let Some(doc) = self.editable() {
+                    let clip = doc.copy_selection();
+                    if clip.is_empty() {
+                        return;
+                    }
+                    if cmd == Cmd::Cut {
+                        doc.delete_selection();
+                    }
+                    self.clip = clip;
+                    // A cut pastes back in place the first time; a copy lands beside the original.
+                    self.pasted = if cmd == Cmd::Cut { -1 } else { 0 };
+                }
+            }
+            Cmd::Paste => {
+                self.pasted += 1;
+                let offset = PASTE_STEP * self.pasted;
+                let clip = self.clip.clone();
+                if let Some(doc) = self.editable() {
+                    doc.paste(&clip, offset);
+                }
+            }
+            Cmd::Duplicate => {
+                if let Some(doc) = self.editable() {
+                    doc.duplicate();
+                }
+            }
+            Cmd::Delete => {
+                if let Some(doc) = self.editable() {
+                    doc.delete_selection();
+                }
+            }
+            Cmd::SelectAll => {
+                if let Some(doc) = self.editable() {
+                    doc.select_all();
+                }
+            }
+            Cmd::RotateRight | Cmd::RotateLeft => {
+                // What is in the hand turns before anything on the drawing does.
+                if matches!(self.ws.tool, Tool::Part(_) | Tool::Power(_)) {
+                    self.ws.ghost = self.ws.ghost.turned(cmd == Cmd::RotateLeft);
+                } else if let Some(doc) = self.editable() {
+                    doc.rotate_selection(cmd == Cmd::RotateLeft);
+                }
+            }
+            Cmd::MirrorHorizontal | Cmd::MirrorVertical => {
+                if matches!(self.ws.tool, Tool::Part(_)) {
+                    self.ws.ghost.mirror = !self.ws.ghost.mirror;
+                } else if let Some(doc) = self.editable() {
+                    doc.flip_selection(cmd == Cmd::MirrorHorizontal);
+                }
+            }
+            Cmd::ToolSelect => self.use_tool(Tool::Select),
+            Cmd::ToolWire => self.use_tool(Tool::Wire),
+            Cmd::ToolLabel => self.use_tool(Tool::Label),
+            Cmd::ToolPower => self.use_tool(Tool::Power("GND".to_owned())),
+            Cmd::ToolNoConnect => self.use_tool(Tool::NoConnect),
+            Cmd::ToggleScript => self.toggle(|s| &mut s.show_script),
             Cmd::Home => self.home = true,
             Cmd::FitView => {
                 if let Some(doc) = self.ws.active_mut() {
@@ -473,7 +821,7 @@ impl App {
             Cmd::Preferences => self.overlay = Overlay::Preferences,
             Cmd::KeyboardShortcuts => self.overlay = Overlay::Shortcuts(String::new()),
             Cmd::About => self.overlay = Overlay::About,
-            Cmd::Quit => self.ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+            Cmd::Quit => self.request_quit(),
         }
     }
 
@@ -486,7 +834,7 @@ impl App {
         // Most specific first: egui matches a shortcut even when Shift or Alt are also held.
         let mut table: Vec<(Cmd, egui::KeyboardShortcut)> = Cmd::ALL
             .iter()
-            .filter(|c| !(typing && c.is_plain_key()))
+            .filter(|c| !(typing && (c.is_plain_key() || c.is_text_edit_key())))
             .filter_map(|c| c.shortcut().map(|s| (*c, s)))
             .collect();
         table.sort_by_key(|(_, s)| {
@@ -500,8 +848,46 @@ impl App {
                 }
             }
         });
+        // Backspace deletes like Delete, except in a text field.
+        if !typing && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Backspace))
+        {
+            commands.push(Cmd::Delete);
+        }
         for cmd in commands {
             self.run(cmd);
+        }
+    }
+
+    /// Keeping the circuit, its text form and its results in step with each other.
+    fn sync(&mut self, ctx: &egui::Context) {
+        let now = ctx.input(|i| i.time);
+        let holding = ctx.input(|i| i.pointer.any_down());
+        let auto_run = self.settings.auto_run;
+        let Some(doc) = self.ws.active_mut() else {
+            return;
+        };
+        let mut again = false;
+        if doc.script.typed_at.is_some() {
+            if doc.script_settle(now, false) {
+                again = true;
+            } else if doc.script.typed_at.is_some() {
+                ctx.request_repaint_after(Duration::from_millis(120));
+            }
+        }
+        if doc.refresh() {
+            again = true;
+        }
+        let run = auto_run && doc.run_pending && !holding && doc.script.typed_at.is_none();
+        if run {
+            doc.run_pending = false;
+        }
+        if run {
+            // A circuit that cannot run says why in the simulation panel; nothing to announce.
+            let _ = self.ws.run(Which::All);
+            again = true;
+        }
+        if again {
+            ctx.request_repaint();
         }
     }
 
@@ -519,6 +905,9 @@ impl App {
         }
     }
 }
+
+/// How far each further paste lands from the one before, in grid units.
+const PASTE_STEP: i32 = 4;
 
 /// A folder's name for a path, for the status bar and Home.
 pub fn folder_of(path: &Path) -> String {
@@ -540,8 +929,17 @@ impl eframe::App for App {
             self.decorated = Some(decorated);
         }
 
+        if ctx.input(|i| i.viewport().close_requested())
+            && !self.quitting
+            && self.ws.docs().iter().any(|d| d.dirty())
+        {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+            self.overlay = Overlay::Unsaved(Pending::Quit);
+        }
+
         self.dropped(&ctx);
         self.shortcuts(&ctx);
+        self.sync(&ctx);
         ui::show(ui, self);
 
         #[cfg(target_os = "linux")]

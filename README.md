@@ -7,8 +7,9 @@ Licence: `MIT OR Apache-2.0`.
 
 ## What runs today
 
-Version 0.1 is a set of engines, a command line and a first desktop app that opens, checks and
-simulates circuits. The app has no schematic editor yet: you cannot draw or change a circuit in it,
+Version 0.2 is a set of engines, a command line and a desktop app in which you draw, edit and
+simulate circuits, either with the mouse or by writing them as code. The two stay in step: edit the
+drawing and the code changes, edit the code and the drawing changes. There is no PCB editor yet,
 and nothing here is certified or fit for safety-critical use.
 
 ```console
@@ -16,6 +17,7 @@ $ circuito sim examples/divider.circuito
 * .op  [circuito-sim 0.1.0-dev; dc: newton]
 V(IN)   1.000000000e1 V
 V(OUT)  6.875000000e0 V
+$ circuito sim examples/divider.circ      # the same circuit written as code
 $ circuito erc examples/divider.circuito
 examples/divider.circuito: 0 error(s), 0 warning(s), 0 note(s)
 $ circuito drc examples/sample-board.circuito-pcb
@@ -35,19 +37,30 @@ $ circuito gerber examples/sample-board.circuito-pcb --out out/
 * **PCB** (`circuito-pcb`): board model, exact-geometry design-rules check, Gerber RS-274X/X2,
   Excellon drill, pick-and-place and BOM CSV.
 * **CLI** (`circuito`): `sim`, `erc`, `netlist`, `drc`, `gerber`; table, CSV or JSON output.
-* **App** (`circuito-app`, egui with the Nodalia Design Language): opens a `.circuito` schematic or
-  a SPICE deck (also by drag and drop), draws the schematic with pan and zoom, lists the rules-check
-  findings (a click selects the part or wire), runs `.op`, `.ac`, `.tran` and `.dc` on a worker
-  thread with progress and cancel, and shows the operating point and plots with engineering units
-  and a logarithmic frequency axis. English and Spanish, light and dark. The rules-check messages
-  come from the engine and are shown in English.
+* **Circuit code** (`circuito-script`): a short text form of a schematic, one line per part
+  (`R1 1k in out`), read into a drawn schematic with automatic placement and routing, and written
+  back from a drawing. Applying a text to a drawing keeps what you placed. See
+  [`docs/script.md`](docs/script.md).
+* **App** (`circuito-app`, egui with the Nodalia Design Language): a schematic editor. Drag parts
+  from the list onto the sheet, draw wires that snap to pins and to other wires, select, move,
+  rotate, mirror, copy, paste and delete, edit references, values, models and fields in the
+  properties panel, add net labels, power ports and no-connect flags, with unlimited undo and redo
+  and a new circuit, save and save as (`.circuito`, or `.circ` as code). A code pane beside the
+  drawing shows the circuit as text, highlighted, with the problems of what you type listed by
+  line. It also opens SPICE decks (also by drag and drop), lists the rules-check findings, runs
+  `.op`, `.ac`, `.tran` and `.dc` on a worker thread with progress and cancel as you edit, and
+  shows the operating point and plots with engineering units and a logarithmic frequency axis.
+  English and Spanish, light and dark. The rules-check messages come from the engine and are shown
+  in English.
 
 What the engines were checked against is written in each crate's README. Simulation results were
 compared with analytic solutions and the published model equations, not with another simulator.
 The Gerber and Excellon files were read back by our own readers, not opened in an external viewer.
 
-What does not exist yet (see [`ROADMAP.md`](ROADMAP.md)): the schematic editor (the app only views
-what it opens), the PCB editor, `.noise`, `.step` and Monte Carlo, zone fill, autorouting, 3D board, PLC and FPGA tools.
+What does not exist yet (see [`ROADMAP.md`](ROADMAP.md)): the PCB editor, hierarchical sheets and
+sheet editing in the app (a drawing with several sheets can be viewed, simulated and edited one
+sheet at a time but not written as code), a library of your own parts, `.noise`, `.step` and Monte
+Carlo, zone fill, autorouting, 3D board, PLC and FPGA tools.
 
 ## Install
 
@@ -77,7 +90,7 @@ run on GitHub for the first time with the first release.
 ```bash
 cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked
 cargo run -p circuito-cli -- sim examples/rc-lowpass.cir
-cargo run -p circuito-app -- examples/rc-lowpass.cir   # the app (Linux needs libxkbcommon-x11-0 and libegl1)
+cargo run -p circuito-app -- examples/divider.circ     # the app (Linux needs libxkbcommon-x11-0 and libegl1)
 ```
 
 ## Layout
@@ -86,6 +99,7 @@ cargo run -p circuito-app -- examples/rc-lowpass.cir   # the app (Linux needs li
 |---|---|
 | `crates/circuito-core` | Values, netlist, schematic model, part library |
 | `crates/circuito-spice` | SPICE netlist reader and writer |
+| `crates/circuito-script` | The circuit code: text to drawn schematic, schematic to text, and applying a text to a drawing |
 | `crates/circuito-sim` | The simulator (uses `nodalia-numerics` from Ábaco, pinned by revision) |
 | `crates/circuito-erc` | Netlist extraction and the electrical rules check |
 | `crates/circuito-pcb` | Board model, DRC, Gerber, Excellon, assembly outputs |

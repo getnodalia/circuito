@@ -6,9 +6,9 @@ nodalia-numerics (from Ábaco)
  circuito-core --- circuito-spice
      |   \             |
      |    circuito-sim |
- circuito-erc          |
+ circuito-erc     circuito-script (text <-> schematic)
      |                 |
- circuito-pcb (own model)      front ends: circuito-cli, egui app (planned)
+ circuito-pcb (own model)      front ends: circuito-cli, egui app
 ```
 
 * Dependencies point down; engines never use egui, eframe or winit.

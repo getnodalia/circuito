@@ -20,10 +20,13 @@
 mod app;
 mod canvas;
 mod chrome;
+mod codepane;
+mod inspector;
 #[cfg(target_os = "linux")]
 mod linux_menu;
 mod menu;
 mod overlays;
+mod palette;
 mod panels;
 mod plotview;
 mod ui;
@@ -44,7 +47,7 @@ fn main() -> ExitCode {
             }
             "--help" | "-h" => {
                 println!(
-                    "Usage: circuito-app [FILE.circuito | FILE.cir]...\n\nCIRCUITO_CONFIG_DIR=<folder> keeps the preferences in <folder>."
+                    "Usage: circuito-app [FILE.circuito | FILE.circ | FILE.cir]...\n\nCIRCUITO_CONFIG_DIR=<folder> keeps the preferences in <folder>."
                 );
                 return ExitCode::SUCCESS;
             }

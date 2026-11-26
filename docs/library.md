@@ -13,3 +13,6 @@ The default simulation models (`D`, `LED`, `DZ`, `NPN`, `PNP`, `NMOS`, `PMOS`, `
 generic, textbook-typical parameter sets chosen for plausible behaviour (for example the LED model
 gives about 1.9 V at 10 mA). They are not the parameters of any manufacturer's part; replace them
 with a `.model` card for the real device.
+
+The part list in the editor (`apps/circuito/src/parts.rs`) groups these by use; a test checks that
+every part of the library is offered and every entry exists.

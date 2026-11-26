@@ -4,8 +4,9 @@
 //! frame, so no widget holds a borrow of the state it changes.
 
 use circuito_app::commands::Cmd;
+use circuito_app::editing::Tool;
 use circuito_app::i18n::{tr, trf};
-use circuito_app::workspace::{Bottom, Tab};
+use circuito_app::workspace::{Bottom, Side, Tab};
 use egui::{pos2, vec2, Id, Rect, Sense, Ui, UiBuilder};
 use nodalia_theme::engineering::{
     self as eng, layout, menu, Document, Look, TitleAction, TitleBar, TitleLabels,
@@ -13,10 +14,10 @@ use nodalia_theme::engineering::{
 use nodalia_theme::for_egui::color;
 use nodalia_theme::Mode;
 
-use crate::app::App;
+use crate::app::{App, Overlay};
 use crate::panels::HomeAction;
 use crate::widgets::icon_button;
-use crate::{canvas, chrome, overlays, panels};
+use crate::{canvas, chrome, codepane, inspector, overlays, palette, panels};
 
 const RIBBON_H: f32 = 84.0;
 const MIN_CENTER: f32 = 440.0;
@@ -89,7 +90,7 @@ pub fn show(ui: &mut Ui, app: &mut App) {
             pos2(body.left() + layout::BROWSER_WIDTH, body.bottom()),
         );
         island(ui, &look, r, "navigator", |ui| {
-            panels::navigator(ui, &look, &mut app.ws)
+            left_panel(ui, &look, app, &mut cmds)
         });
         x0 = r.right() + gap;
     }
@@ -98,9 +99,14 @@ pub fn show(ui: &mut Ui, app: &mut App) {
             pos2(body.right() - layout::PROPERTIES_WIDTH, body.top()),
             body.max,
         );
+        let mut asked = inspector::Asked::default();
         island(ui, &look, r, "properties", |ui| {
-            panels::properties(ui, &look, app.ws.active())
+            asked = inspector::show(ui, &look, app.ws.active());
         });
+        cmds.extend(asked.commands);
+        for action in asked.actions {
+            app.apply(action);
+        }
         x1 = r.left() - gap;
     }
     let column = Rect::from_min_max(pos2(x0, body.top()), pos2(x1, body.bottom()));
@@ -166,6 +172,32 @@ fn island(ui: &mut Ui, look: &Look, rect: Rect, id: &str, add: impl FnOnce(&mut 
     });
 }
 
+/// The left panel: the parts to draw with, or the sheets and analyses of the circuit.
+fn left_panel(ui: &mut Ui, look: &Look, app: &mut App, cmds: &mut Vec<Cmd>) {
+    let drawable = app.ws.active().is_some_and(|d| d.editable());
+    let side = if drawable {
+        app.ws.side
+    } else {
+        Side::Navigator
+    };
+    if drawable {
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 2.0;
+            if eng::ribbon_tab(ui, look, tr("Parts"), side == Side::Parts).clicked() {
+                app.ws.side = Side::Parts;
+            }
+            if eng::ribbon_tab(ui, look, tr("Navigator"), side == Side::Navigator).clicked() {
+                app.ws.side = Side::Navigator;
+            }
+        });
+        ui.add_space(4.0);
+    }
+    match side {
+        Side::Parts => palette::show(ui, look, &mut app.ws, &mut app.part_filter, cmds),
+        Side::Navigator => panels::navigator(ui, look, &mut app.ws),
+    }
+}
+
 fn centre_content(
     ui: &mut Ui,
     look: &Look,
@@ -176,6 +208,7 @@ fn centre_content(
     if app.home || app.ws.active().is_none() {
         let icon = app.icon(ctx);
         match panels::home(ui, look, icon, &app.settings) {
+            Some(HomeAction::New) => cmds.push(Cmd::New),
             Some(HomeAction::Sample(s)) => app.open_sample(s),
             Some(HomeAction::Open) => cmds.push(Cmd::Open),
             Some(HomeAction::Recent(path)) => app.open_path(path),
@@ -220,12 +253,42 @@ fn centre_content(
     let grid = app.settings.show_grid;
     match tab {
         Tab::Schematic => {
-            if let Some(doc) = app.ws.active_mut() {
-                let out = canvas::show(ui, look, doc, grid);
+            let keys = app.overlay == Overlay::None && !ctx.egui_wants_keyboard_input();
+            let tool = app.ws.tool.clone();
+            let ghost = app.ws.ghost;
+            let show_code = app.settings.show_script
+                && app.ws.active().is_some_and(|d| d.script_available())
+                && ui.available_width() > 640.0;
+            let now = ctx.input(|i| i.time);
+            let mut drew = None;
+            let pen = canvas::Pen {
+                tool: &tool,
+                ghost,
+                keys,
+            };
+            if show_code {
+                let width = (ui.available_width() * 0.36).clamp(280.0, 460.0);
+                let full = ui.available_rect_before_wrap();
+                let (left, right) = (
+                    Rect::from_min_max(full.min, pos2(full.right() - width - 8.0, full.bottom())),
+                    Rect::from_min_max(pos2(full.right() - width, full.top()), full.max),
+                );
+                if let Some(doc) = app.ws.active_mut() {
+                    ui.scope_builder(UiBuilder::new().max_rect(left), |ui| {
+                        drew = Some(canvas::show(ui, look, doc, grid, &pen));
+                    });
+                    ui.scope_builder(UiBuilder::new().max_rect(right).id_salt("code"), |ui| {
+                        codepane::show(ui, look, doc, now);
+                    });
+                }
+            } else if let Some(doc) = app.ws.active_mut() {
+                drew = Some(canvas::show(ui, look, doc, grid, &pen));
+            }
+            if let Some(out) = drew {
                 app.hover = out.hover;
                 cmds.extend(out.commands);
-                if let Some(selection) = out.clicked {
-                    app.ws.select(selection);
+                if let Some(tool) = out.tool {
+                    app.ws.tool = tool;
                 }
             }
         }
@@ -271,10 +334,9 @@ fn ribbon_tools(ui: &mut Ui, look: &Look, app: &App, cmds: &mut Vec<Cmd>) {
     let doc = app.ws.active();
     let has = doc.is_some() && !app.home;
     let drawing = doc.is_some_and(|d| d.circuit.schematic.is_some());
-    let file = doc.is_some_and(|d| d.circuit.path.is_some());
+    let editing = has && doc.is_some_and(|d| d.editable()) && app.ws.tab() == Tab::Schematic;
     let can_run = doc.is_some_and(|d| d.circuit.blocked.is_none() && !d.runs.is_empty());
     let busy = app.ws.busy();
-    let tab = app.ws.tab;
     let s = &app.settings;
     let tool = |ui: &mut Ui, cmd: Cmd, enabled: bool, active: bool, cmds: &mut Vec<Cmd>| {
         let name = cmd.icon().unwrap_or("more-horizontal");
@@ -298,28 +360,34 @@ fn ribbon_tools(ui: &mut Ui, look: &Look, app: &App, cmds: &mut Vec<Cmd>) {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = 2.0;
                 eng::ribbon_group(ui, look, tr("Circuit"), |ui| {
+                    tool(ui, Cmd::New, true, false, cmds);
                     tool(ui, Cmd::Open, true, false, cmds);
-                    tool(ui, Cmd::Reload, file, false, cmds);
+                    tool(ui, Cmd::Save, editing, false, cmds);
+                });
+                eng::ribbon_group(ui, look, tr("Edit"), |ui| {
+                    tool(ui, Cmd::Undo, editing, false, cmds);
+                    tool(ui, Cmd::Redo, editing, false, cmds);
+                    tool(ui, Cmd::Delete, editing, false, cmds);
+                });
+                eng::ribbon_group(ui, look, tr("Draw"), |ui| {
+                    let now = &app.ws.tool;
+                    tool(ui, Cmd::ToolSelect, editing, *now == Tool::Select, cmds);
+                    tool(ui, Cmd::ToolWire, editing, *now == Tool::Wire, cmds);
+                    tool(ui, Cmd::ToolLabel, editing, *now == Tool::Label, cmds);
+                    tool(
+                        ui,
+                        Cmd::ToolPower,
+                        editing,
+                        matches!(now, Tool::Power(_)),
+                        cmds,
+                    );
+                    tool(ui, Cmd::RotateRight, editing, false, cmds);
+                    tool(ui, Cmd::MirrorHorizontal, editing, false, cmds);
                 });
                 eng::ribbon_group(ui, look, tr("View"), |ui| {
                     tool(ui, Cmd::FitView, drawing, false, cmds);
-                    tool(ui, Cmd::ZoomIn, drawing, false, cmds);
-                    tool(ui, Cmd::ZoomOut, drawing, false, cmds);
                     tool(ui, Cmd::ToggleGrid, drawing, s.show_grid, cmds);
-                    tool(
-                        ui,
-                        Cmd::ShowSchematic,
-                        drawing,
-                        drawing && tab == Tab::Schematic,
-                        cmds,
-                    );
-                    tool(
-                        ui,
-                        Cmd::ShowNetlist,
-                        has,
-                        !drawing || tab == Tab::Netlist,
-                        cmds,
-                    );
+                    tool(ui, Cmd::ToggleScript, editing, s.show_script, cmds);
                 });
                 eng::ribbon_group(ui, look, tr("Panels"), |ui| {
                     tool(ui, Cmd::ToggleNavigator, true, s.show_navigator, cmds);
@@ -342,6 +410,20 @@ fn ribbon_tools(ui: &mut Ui, look: &Look, app: &App, cmds: &mut Vec<Cmd>) {
 /// A command's label as it fits under a ribbon icon.
 fn short_label(cmd: Cmd) -> &'static str {
     match cmd {
+        Cmd::New => tr("New"),
+        Cmd::Save => tr("Save"),
+        Cmd::Undo => tr("Undo"),
+        Cmd::Redo => tr("Redo"),
+        Cmd::Duplicate => tr("Duplicate"),
+        Cmd::Delete => tr("Delete"),
+        Cmd::ToolSelect => tr("Select"),
+        Cmd::ToolWire => tr("Wire"),
+        Cmd::ToolLabel => tr("Label"),
+        Cmd::ToolPower => tr("Ground"),
+        Cmd::ToolNoConnect => tr("No-connect"),
+        Cmd::RotateRight => tr("Rotate"),
+        Cmd::MirrorHorizontal => tr("Mirror"),
+        Cmd::ToggleScript => tr("Code"),
         Cmd::Open => tr("Open"),
         Cmd::Reload => tr("Reload"),
         Cmd::FitView => tr("Fit"),
@@ -391,6 +473,12 @@ fn title_bar(
             modified: false,
         })
         .collect();
+    let dirty: Vec<bool> = app.ws.docs().iter().map(|d| d.dirty()).collect();
+    let documents: Vec<Document> = documents
+        .into_iter()
+        .zip(dirty)
+        .map(|(d, modified)| Document { modified, ..d })
+        .collect();
     let icon = app.icon(&ctx);
     let title = TitleBar {
         app: circuito_app::NAME,
@@ -407,7 +495,7 @@ fn title_bar(
             save: tr("Save"),
             undo: tr("Undo"),
             redo: tr("Redo"),
-            new_document: tr("Open a circuit"),
+            new_document: tr("New circuit"),
             close_document: tr("Close"),
             search: tr("Search commands"),
             menu: tr("Main menu"),
@@ -449,11 +537,10 @@ fn title_bar(
             ui.data_mut(|d| d.insert_temp(app_menu_id().with("at"), anchor(x)));
             egui::Popup::toggle_id(&ctx, app_menu_id());
         }
-        Some(TitleAction::NewDocument) => cmds.push(Cmd::Open),
+        Some(TitleAction::NewDocument) => cmds.push(Cmd::New),
         Some(TitleAction::CloseDocument(i)) => {
-            app.ws.close(i);
-            if app.ws.docs().is_empty() {
-                app.home = true;
+            if let Some(id) = app.ws.docs().get(i).map(|d| d.id) {
+                app.request_close(id);
             }
         }
         Some(TitleAction::Document(i)) => {
@@ -461,7 +548,10 @@ fn title_bar(
             app.home = false;
         }
         Some(TitleAction::Search) => cmds.push(Cmd::CommandSearch),
-        Some(TitleAction::Save) | Some(TitleAction::Undo) | Some(TitleAction::Redo) | None => {}
+        Some(TitleAction::Save) => cmds.push(Cmd::Save),
+        Some(TitleAction::Undo) => cmds.push(Cmd::Undo),
+        Some(TitleAction::Redo) => cmds.push(Cmd::Redo),
+        None => {}
     }
     title_menus(ui, look, cmds);
 }
@@ -498,7 +588,11 @@ fn title_menus(ui: &mut Ui, look: &Look, cmds: &mut Vec<Cmd>) {
     };
     popup(file_menu_id()).show(|ui| {
         ui.set_min_width(menu::metric::MIN_WIDTH + 40.0);
-        for cmd in [Cmd::Open, Cmd::Reload, Cmd::CloseDocument] {
+        for cmd in [Cmd::New, Cmd::Open] {
+            item(ui, cmd, cmds);
+        }
+        menu::separator(ui, look);
+        for cmd in [Cmd::Save, Cmd::SaveAs, Cmd::Reload, Cmd::CloseDocument] {
             item(ui, cmd, cmds);
         }
         menu::separator(ui, look);
