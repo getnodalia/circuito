@@ -92,6 +92,7 @@ version = "0.1.0-dev"
 dependencies = [
  "circuito-core",
  "circuito-erc",
+ "circuito-pcb",
  "circuito-sim",
  "circuito-spice",
  "serde_json",

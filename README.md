@@ -17,6 +17,9 @@ V(IN)   1.000000000e1 V
 V(OUT)  6.875000000e0 V
 $ circuito erc examples/divider.circuito
 examples/divider.circuito: 0 error(s), 0 warning(s), 0 note(s)
+$ circuito drc examples/sample-board.circuito-pcb
+examples/sample-board.circuito-pcb: 0 error(s), 0 warning(s) against generic-2layer-6-6
+$ circuito gerber examples/sample-board.circuito-pcb --out out/
 ```
 
 * **Core** (`circuito-core`): engineering values (`4.7k`, `100n`), source waveforms, the netlist, the
@@ -30,7 +33,7 @@ examples/divider.circuito: 0 error(s), 0 warning(s), 0 note(s)
 * **Electrical rules check** (`circuito-erc`): 25 rules with stable codes, JSON output.
 * **PCB** (`circuito-pcb`): board model, exact-geometry design-rules check, Gerber RS-274X/X2,
   Excellon drill, pick-and-place and BOM CSV.
-* **CLI** (`circuito`): `sim`, `erc`, `netlist`; table, CSV or JSON output.
+* **CLI** (`circuito`): `sim`, `erc`, `netlist`, `drc`, `gerber`; table, CSV or JSON output.
 
 What the engines were checked against is written in each crate's README. Simulation results were
 compared with analytic solutions and the published model equations, not with another simulator.
@@ -56,6 +59,6 @@ cargo run -p circuito-cli -- sim examples/rc-lowpass.cir
 | `crates/circuito-erc` | Netlist extraction and the electrical rules check |
 | `crates/circuito-pcb` | Board model, DRC, Gerber, Excellon, assembly outputs |
 | `apps/circuito-cli` | The `circuito` command |
-| `examples/` | Small circuits used by the tests |
+| `examples/` | Small circuits and a sample board used by the tests |
 
 Rules for contributors and agents: [`AGENTS.md`](AGENTS.md). Security: [`SECURITY.md`](SECURITY.md).

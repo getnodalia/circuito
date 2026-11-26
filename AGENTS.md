@@ -25,7 +25,7 @@ what does not exist yet; planned features are never described as existing.
 | `crates/circuito-sim` | The circuit simulator: modified nodal analysis, Newton–Raphson, DC, AC and transient analyses |
 | `crates/circuito-erc` | Netlist extraction from a schematic and the electrical rules check |
 | `crates/circuito-pcb` | Board model, design rules check, Gerber RS-274X/X2 and Excellon output |
-| `apps/circuito-cli` | Headless `circuito` command: `sim`, `erc`, `netlist` (`drc` and `gerber` are not wired in yet) |
+| `apps/circuito-cli` | Headless `circuito` command: `sim`, `erc`, `netlist`, `drc`, `gerber` |
 | `apps/circuito` | The egui app |
 
 Dependencies point down: engines never use egui, eframe or winit, and no engine blocks on I/O it

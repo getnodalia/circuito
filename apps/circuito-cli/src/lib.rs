@@ -15,6 +15,7 @@
 pub mod args;
 pub mod load;
 pub mod output;
+mod pcb;
 
 use args::{Command, Format};
 use circuito_erc::Severity;
@@ -22,12 +23,14 @@ use circuito_sim::{simulate, AnalysisResult, Control, Options};
 use std::io::{self, Read, Write};
 
 const USAGE: &str = "\
-circuito: simulate circuits, check schematics, export netlists
+circuito: simulate circuits, check schematics and boards, export netlists and Gerber files
 
 USAGE
   circuito sim <file> [--format table|csv|json] [-o <out>] [-a <n>]
   circuito erc <file.circuito> [--json] [--deny-warnings]
   circuito netlist <file.circuito> [-o <out>]
+  circuito drc <board.circuito-pcb> [--profile <name>] [--json] [--deny-warnings]
+  circuito gerber <board.circuito-pcb> --out <dir>
   circuito --help | --version
 
 COMMANDS
@@ -38,11 +41,16 @@ COMMANDS
            --deny-warnings).
   netlist  Write the SPICE netlist extracted from a schematic. Exit 1 if some parts could not
            be extracted (they are listed on standard error; the rest is still written).
+  drc      Design rules check of a board against a manufacturer profile (generic-2layer or
+           generic-4layer; by default the one that fits the board's copper layers). Exit 1 if it
+           has errors (or warnings with --deny-warnings).
+  gerber   Write the manufacturing files of a board into <dir>: Gerber RS-274X/X2 for every
+           layer, Excellon drills, pick-and-place and bill of materials CSV.
 
 A file name of - reads standard input. Exit codes: 0 ok, 1 failed, 2 bad command line.
 ";
 
-fn fail(err: &mut dyn Write, msg: &str) -> i32 {
+pub(crate) fn fail(err: &mut dyn Write, msg: &str) -> i32 {
     let _ = writeln!(err, "circuito: {msg}");
     1
 }
@@ -87,6 +95,21 @@ pub fn run_with_stdin(
             deny_warnings,
         } => cmd_erc(&file, json, deny_warnings, stdin, out, err),
         Command::Netlist { file, output } => cmd_netlist(&file, output.as_deref(), stdin, out, err),
+        Command::Drc {
+            file,
+            profile,
+            json,
+            deny_warnings,
+        } => pcb::cmd_drc(
+            &file,
+            profile.as_deref(),
+            json,
+            deny_warnings,
+            stdin,
+            out,
+            err,
+        ),
+        Command::Gerber { file, out_dir } => pcb::cmd_gerber(&file, &out_dir, stdin, out, err),
     }
 }
 
