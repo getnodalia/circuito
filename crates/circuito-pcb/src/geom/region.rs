@@ -85,7 +85,11 @@ pub fn ring_is_simple(ring: &[Point]) -> bool {
             let adjacent = j == (i + 1) % n || i == (j + 1) % n;
             if adjacent {
                 // Adjacent edges may share only their common vertex: reject folding back on each other.
-                let (shared, p, q) = if j == (i + 1) % n { (b, a, d) } else { (a, b, c) };
+                let (shared, p, q) = if j == (i + 1) % n {
+                    (b, a, d)
+                } else {
+                    (a, b, c)
+                };
                 if cross(shared, p, q) == 0 && super::point::dot(shared, p, q) > 0 {
                     return false;
                 }
@@ -124,7 +128,10 @@ impl Region {
     /// Validates a deserialised region.
     pub fn validate(&self, what: &str) -> Result<()> {
         if self.holes.len() > MAX_HOLES {
-            return Err(PcbError::range(what, format!("{} holes exceed the limit of {MAX_HOLES}", self.holes.len())));
+            return Err(PcbError::range(
+                what,
+                format!("{} holes exceed the limit of {MAX_HOLES}", self.holes.len()),
+            ));
         }
         validate_ring(&self.outer, what)?;
         for (i, h) in self.holes.iter().enumerate() {
@@ -132,14 +139,22 @@ impl Region {
             validate_ring(h, &name)?;
             for &v in h {
                 if locate_in_ring(&self.outer, v) == Loc::Outside {
-                    return Err(PcbError::geometry(&name, format!("vertex ({}, {}) is outside the outer ring", v.x, v.y)));
+                    return Err(PcbError::geometry(
+                        &name,
+                        format!("vertex ({}, {}) is outside the outer ring", v.x, v.y),
+                    ));
                 }
             }
             let n = h.len();
             let m = self.outer.len();
             for i in 0..n {
                 for j in 0..m {
-                    if segments_cross_properly(h[i], h[(i + 1) % n], self.outer[j], self.outer[(j + 1) % m]) {
+                    if segments_cross_properly(
+                        h[i],
+                        h[(i + 1) % n],
+                        self.outer[j],
+                        self.outer[(j + 1) % m],
+                    ) {
                         return Err(PcbError::geometry(&name, "crosses the outer ring"));
                     }
                 }
@@ -182,10 +197,12 @@ impl Region {
 
     /// Every edge of every ring.
     pub fn edges(&self) -> impl Iterator<Item = (Point, Point)> + '_ {
-        std::iter::once(&self.outer).chain(self.holes.iter()).flat_map(|r| {
-            let n = r.len();
-            (0..n).map(move |i| (r[i], r[(i + 1) % n]))
-        })
+        std::iter::once(&self.outer)
+            .chain(self.holes.iter())
+            .flat_map(|r| {
+                let n = r.len();
+                (0..n).map(move |i| (r[i], r[(i + 1) % n]))
+            })
     }
 
     pub fn vertex_count(&self) -> usize {
@@ -194,8 +211,15 @@ impl Region {
 
     /// Translated copy; `None` on overflow.
     pub fn translated(&self, dx: i64, dy: i64) -> Option<Region> {
-        let tr = |r: &Vec<Point>| r.iter().map(|p| p.checked_add(dx, dy)).collect::<Option<Vec<_>>>();
-        Some(Region { outer: tr(&self.outer)?, holes: self.holes.iter().map(tr).collect::<Option<Vec<_>>>()? })
+        let tr = |r: &Vec<Point>| {
+            r.iter()
+                .map(|p| p.checked_add(dx, dy))
+                .collect::<Option<Vec<_>>>()
+        };
+        Some(Region {
+            outer: tr(&self.outer)?,
+            holes: self.holes.iter().map(tr).collect::<Option<Vec<_>>>()?,
+        })
     }
 }
 
@@ -204,7 +228,13 @@ fn validate_ring(ring: &[Point], what: &str) -> Result<()> {
         return Err(PcbError::geometry(what, "needs at least 3 vertices"));
     }
     if ring.len() > MAX_RING_VERTS {
-        return Err(PcbError::range(what, format!("{} vertices exceed the limit of {MAX_RING_VERTS}", ring.len())));
+        return Err(PcbError::range(
+            what,
+            format!(
+                "{} vertices exceed the limit of {MAX_RING_VERTS}",
+                ring.len()
+            ),
+        ));
     }
     for p in ring {
         check_coord(p.x, what)?;
@@ -214,7 +244,10 @@ fn validate_ring(ring: &[Point], what: &str) -> Result<()> {
         return Err(PcbError::geometry(what, "has zero area"));
     }
     if !ring_is_simple(ring) {
-        return Err(PcbError::geometry(what, "is self-intersecting or has repeated vertices"));
+        return Err(PcbError::geometry(
+            what,
+            "is self-intersecting or has repeated vertices",
+        ));
     }
     Ok(())
 }
@@ -224,7 +257,12 @@ mod tests {
     use super::*;
 
     fn sq(x0: i64, y0: i64, x1: i64, y1: i64) -> Vec<Point> {
-        vec![Point::new(x0, y0), Point::new(x1, y0), Point::new(x1, y1), Point::new(x0, y1)]
+        vec![
+            Point::new(x0, y0),
+            Point::new(x1, y0),
+            Point::new(x1, y1),
+            Point::new(x0, y1),
+        ]
     }
 
     #[test]
@@ -249,13 +287,29 @@ mod tests {
     fn simplicity() {
         assert!(ring_is_simple(&sq(0, 0, 4, 4)));
         // bow-tie
-        let bow = vec![Point::new(0, 0), Point::new(4, 4), Point::new(4, 0), Point::new(0, 4)];
+        let bow = vec![
+            Point::new(0, 0),
+            Point::new(4, 4),
+            Point::new(4, 0),
+            Point::new(0, 4),
+        ];
         assert!(!ring_is_simple(&bow));
         // repeated vertex
-        let rep = vec![Point::new(0, 0), Point::new(4, 0), Point::new(4, 0), Point::new(4, 4), Point::new(0, 4)];
+        let rep = vec![
+            Point::new(0, 0),
+            Point::new(4, 0),
+            Point::new(4, 0),
+            Point::new(4, 4),
+            Point::new(0, 4),
+        ];
         assert!(!ring_is_simple(&rep));
         // spike (fold back)
-        let spike = vec![Point::new(0, 0), Point::new(4, 0), Point::new(2, 0), Point::new(2, 4)];
+        let spike = vec![
+            Point::new(0, 0),
+            Point::new(4, 0),
+            Point::new(2, 0),
+            Point::new(2, 4),
+        ];
         assert!(!ring_is_simple(&spike));
     }
 
@@ -267,7 +321,11 @@ mod tests {
         assert_eq!(reg.locate(Point::new(40, 50)), Loc::Boundary);
         assert_eq!(reg.area2(), 2 * (10_000 - 400));
         assert!(Region::new(sq(0, 0, 100, 100), vec![sq(90, 90, 110, 110)]).is_err());
-        assert!(Region::new(vec![Point::new(0, 0), Point::new(1, 1), Point::new(2, 2)], vec![]).is_err());
+        assert!(Region::new(
+            vec![Point::new(0, 0), Point::new(1, 1), Point::new(2, 2)],
+            vec![]
+        )
+        .is_err());
         assert!(Region::new(sq(0, 0, 2 << 30, 5), vec![]).is_err());
     }
 }

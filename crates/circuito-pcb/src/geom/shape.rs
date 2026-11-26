@@ -34,17 +34,26 @@ const FAR: u128 = 1 << 120;
 
 impl Shape {
     pub fn point(p: Point, diam: Nm) -> Shape {
-        Shape { core: Core::Point(p), diam }
+        Shape {
+            core: Core::Point(p),
+            diam,
+        }
     }
     pub fn segment(a: Point, b: Point, diam: Nm) -> Shape {
         if a == b {
             Shape::point(a, diam)
         } else {
-            Shape { core: Core::Segment(a, b), diam }
+            Shape {
+                core: Core::Segment(a, b),
+                diam,
+            }
         }
     }
     pub fn region(r: Region, diam: Nm) -> Shape {
-        Shape { core: Core::Region(r), diam }
+        Shape {
+            core: Core::Region(r),
+            diam,
+        }
     }
 
     /// Bounding box including the grown disc (rounded up).
@@ -71,7 +80,8 @@ impl Shape {
     /// touch exactly). Exact for every input within the coordinate limits.
     pub fn gap_cmp(&self, other: &Shape, required: Nm) -> Ordering {
         let r2 = (self.diam as i128 + other.diam as i128 + 2 * required as i128).max(0) as u128;
-        let reach = ((self.diam as i128 + other.diam as i128) / 2 + required as i128 + 1).clamp(0, i64::MAX as i128) as i64;
+        let reach = ((self.diam as i128 + other.diam as i128) / 2 + required as i128 + 1)
+            .clamp(0, i64::MAX as i128) as i64;
         core_dist2(&self.core, &other.core, Some(reach)).cmp_double_dist_sq(r2)
     }
 
@@ -89,7 +99,11 @@ impl Shape {
     }
 }
 
-fn region_near(r: &Region, b: Rect, reach: Option<Nm>) -> impl Iterator<Item = (Point, Point)> + '_ {
+fn region_near(
+    r: &Region,
+    b: Rect,
+    reach: Option<Nm>,
+) -> impl Iterator<Item = (Point, Point)> + '_ {
     let window = reach.map(|d| b.inflate(d));
     r.edges().filter(move |(p, q)| match window {
         None => true,
@@ -111,14 +125,18 @@ pub fn core_dist2(a: &Core, b: &Core, reach: Option<Nm>) -> Ratio {
                 return Ratio::ZERO;
             }
             let bb = Rect::from_point(*p);
-            region_near(r, bb, reach).map(|(c, d)| point_segment_dist2(*p, c, d)).fold(Ratio::int(FAR), Ratio::min)
+            region_near(r, bb, reach)
+                .map(|(c, d)| point_segment_dist2(*p, c, d))
+                .fold(Ratio::int(FAR), Ratio::min)
         }
         (Segment(p, q), Region(r)) | (Region(r), Segment(p, q)) => {
             if r.locate(*p) != Loc::Outside || r.locate(*q) != Loc::Outside {
                 return Ratio::ZERO;
             }
             let bb = Rect::from_point(*p).include(*q);
-            region_near(r, bb, reach).map(|(c, d)| segment_segment_dist2(*p, *q, c, d)).fold(Ratio::int(FAR), Ratio::min)
+            region_near(r, bb, reach)
+                .map(|(c, d)| segment_segment_dist2(*p, *q, c, d))
+                .fold(Ratio::int(FAR), Ratio::min)
         }
         (Region(r1), Region(r2)) => {
             let b1 = r1.bbox();
@@ -223,7 +241,21 @@ mod tests {
         // segment fully inside
         assert!(a.touches(&Shape::segment(p(100, 100), p(900, 900), 0)));
         // region inside a region with a hole: disjoint when sitting in the hole
-        let holey = Region::new(vec![p(-5000, -5000), p(5000, -5000), p(5000, 5000), p(-5000, 5000)], vec![vec![p(-2000, -2000), p(2000, -2000), p(2000, 2000), p(-2000, 2000)]]).unwrap();
+        let holey = Region::new(
+            vec![
+                p(-5000, -5000),
+                p(5000, -5000),
+                p(5000, 5000),
+                p(-5000, 5000),
+            ],
+            vec![vec![
+                p(-2000, -2000),
+                p(2000, -2000),
+                p(2000, 2000),
+                p(-2000, 2000),
+            ]],
+        )
+        .unwrap();
         let h = Shape::region(holey, 0);
         assert!(!a.touches(&h));
         assert_eq!(a.gap_floor(&h), 1000);

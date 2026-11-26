@@ -34,7 +34,12 @@ pub struct Arc {
 impl Arc {
     /// Builds and validates an arc.
     pub fn new(start: Point, end: Point, center: Point, ccw: bool) -> Result<Arc> {
-        let a = Arc { start, end, center, ccw };
+        let a = Arc {
+            start,
+            end,
+            center,
+            ccw,
+        };
         a.validate("arc")?;
         Ok(a)
     }
@@ -48,7 +53,10 @@ impl Arc {
         let rs = isqrt(self.start.dist2(self.center)) as i128;
         let re = isqrt(self.end.dist2(self.center)) as i128;
         if rs == 0 || re == 0 {
-            return Err(PcbError::geometry(what, "start or end coincides with the centre"));
+            return Err(PcbError::geometry(
+                what,
+                "start or end coincides with the centre",
+            ));
         }
         if (rs - re).abs() > ARC_RADIUS_TOLERANCE as i128 {
             return Err(PcbError::geometry(what, format!("start radius {rs} nm and end radius {re} nm differ by more than {ARC_RADIUS_TOLERANCE} nm")));
@@ -81,8 +89,13 @@ impl Arc {
             i64::try_from(start.y as i128 + uy).map_err(|_| PcbError::Overflow("arc centre"))?,
         );
         // start -> mid -> end turning left means counter-clockwise travel.
-        Arc::new(start, end, center, d > 0, ).map_err(|e| match e {
-            PcbError::Geometry { detail, .. } => PcbError::geometry("arc", format!("{detail}; the centre is too far away or the points too close to collinear")),
+        Arc::new(start, end, center, d > 0).map_err(|e| match e {
+            PcbError::Geometry { detail, .. } => PcbError::geometry(
+                "arc",
+                format!(
+                    "{detail}; the centre is too far away or the points too close to collinear"
+                ),
+            ),
             o => o,
         })
     }
@@ -95,7 +108,8 @@ impl Arc {
     /// Signed sweep in radians: positive counter-clockwise, in `(-2pi, 2pi]`; a full circle when
     /// `start == end`.
     pub fn sweep(&self) -> f64 {
-        let a0 = ((self.start.y - self.center.y) as f64).atan2((self.start.x - self.center.x) as f64);
+        let a0 =
+            ((self.start.y - self.center.y) as f64).atan2((self.start.x - self.center.x) as f64);
         let a1 = ((self.end.y - self.center.y) as f64).atan2((self.end.x - self.center.x) as f64);
         let tau = std::f64::consts::TAU;
         if self.start == self.end {
@@ -128,13 +142,21 @@ impl Arc {
         let r = self.radius();
         let sweep = self.sweep();
         let tol = tolerance.max(1) as f64;
-        let step = if tol >= r { std::f64::consts::FRAC_PI_2 } else { (2.0 * (1.0 - tol / r).acos()).min(std::f64::consts::FRAC_PI_2) };
+        let step = if tol >= r {
+            std::f64::consts::FRAC_PI_2
+        } else {
+            (2.0 * (1.0 - tol / r).acos()).min(std::f64::consts::FRAC_PI_2)
+        };
         let n_f = (sweep.abs() / step).ceil().max(1.0);
         if !n_f.is_finite() || n_f > MAX_ARC_SEGMENTS as f64 {
-            return Err(PcbError::range("arc", format!("needs more than {MAX_ARC_SEGMENTS} segments at {tolerance} nm tolerance")));
+            return Err(PcbError::range(
+                "arc",
+                format!("needs more than {MAX_ARC_SEGMENTS} segments at {tolerance} nm tolerance"),
+            ));
         }
         let n = n_f as usize;
-        let a0 = ((self.start.y - self.center.y) as f64).atan2((self.start.x - self.center.x) as f64);
+        let a0 =
+            ((self.start.y - self.center.y) as f64).atan2((self.start.x - self.center.x) as f64);
         let mut pts = Vec::with_capacity(n + 1);
         pts.push(self.start);
         for i in 1..n {
@@ -143,7 +165,10 @@ impl Arc {
             let y = (self.center.y as f64 + r * a.sin()).round();
             let lim = MAX_COORD as f64 * 2.0;
             if x.abs() > lim || y.abs() > lim {
-                return Err(PcbError::range("arc", "approximation leaves the coordinate range"));
+                return Err(PcbError::range(
+                    "arc",
+                    "approximation leaves the coordinate range",
+                ));
             }
             pts.push(Point::new(x as i64, y as i64));
         }
@@ -156,13 +181,18 @@ impl Arc {
     pub fn bbox(&self) -> Rect {
         let mut r = Rect::from_point(self.start).include(self.end);
         let sweep = self.sweep();
-        let a0 = ((self.start.y - self.center.y) as f64).atan2((self.start.x - self.center.x) as f64);
+        let a0 =
+            ((self.start.y - self.center.y) as f64).atan2((self.start.x - self.center.x) as f64);
         let rad = self.radius();
         for k in 0..4 {
             let ang = k as f64 * std::f64::consts::FRAC_PI_2;
             // angle of the axis extreme relative to the start, in the arc's direction
             let tau = std::f64::consts::TAU;
-            let rel = if sweep >= 0.0 { (ang - a0).rem_euclid(tau) } else { -((a0 - ang).rem_euclid(tau)) };
+            let rel = if sweep >= 0.0 {
+                (ang - a0).rem_euclid(tau)
+            } else {
+                -((a0 - ang).rem_euclid(tau))
+            };
             if rel.abs() <= sweep.abs() {
                 let x = (self.center.x as f64 + rad * ang.cos()).round() as i64;
                 let y = (self.center.y as f64 + rad * ang.sin()).round() as i64;
@@ -191,10 +221,24 @@ mod tests {
     #[test]
     fn through_three_points_quarter_circle() {
         // quarter circle of radius 1 mm about the origin, counter-clockwise
-        let a = Arc::through(Point::new(1_000_000, 0), Point::new(707_107, 707_107), Point::new(0, 1_000_000)).unwrap();
-        assert!(a.center.x.abs() <= 2 && a.center.y.abs() <= 2, "{:?}", a.center);
+        let a = Arc::through(
+            Point::new(1_000_000, 0),
+            Point::new(707_107, 707_107),
+            Point::new(0, 1_000_000),
+        )
+        .unwrap();
+        assert!(
+            a.center.x.abs() <= 2 && a.center.y.abs() <= 2,
+            "{:?}",
+            a.center
+        );
         assert!(a.ccw);
-        let cw = Arc::through(Point::new(0, 1_000_000), Point::new(707_107, 707_107), Point::new(1_000_000, 0)).unwrap();
+        let cw = Arc::through(
+            Point::new(0, 1_000_000),
+            Point::new(707_107, 707_107),
+            Point::new(1_000_000, 0),
+        )
+        .unwrap();
         assert!(!cw.ccw);
         assert!((a.sweep() - std::f64::consts::FRAC_PI_2).abs() < 1e-5);
         assert!((cw.sweep() + std::f64::consts::FRAC_PI_2).abs() < 1e-5);
@@ -209,7 +253,13 @@ mod tests {
 
     #[test]
     fn approximation_stays_within_tolerance() {
-        let a = Arc::new(Point::new(5_000_000, 0), Point::new(0, 5_000_000), Point::ORIGIN, true).unwrap();
+        let a = Arc::new(
+            Point::new(5_000_000, 0),
+            Point::new(0, 5_000_000),
+            Point::ORIGIN,
+            true,
+        )
+        .unwrap();
         let pts = a.approximate(500).unwrap();
         assert_eq!(pts.first().copied(), Some(a.start));
         assert_eq!(pts.last().copied(), Some(a.end));
@@ -224,19 +274,37 @@ mod tests {
 
     #[test]
     fn full_circle_and_bbox() {
-        let c = Arc::new(Point::new(1000, 0), Point::new(1000, 0), Point::ORIGIN, false).unwrap();
+        let c = Arc::new(
+            Point::new(1000, 0),
+            Point::new(1000, 0),
+            Point::ORIGIN,
+            false,
+        )
+        .unwrap();
         assert!((c.sweep() + std::f64::consts::TAU).abs() < 1e-9);
         let b = c.bbox();
         assert!(b.min.x <= -1000 && b.max.x >= 1000 && b.min.y <= -1000 && b.max.y >= 1000);
         // half circle above the axis only
-        let h = Arc::new(Point::new(1000, 0), Point::new(-1000, 0), Point::ORIGIN, true).unwrap();
+        let h = Arc::new(
+            Point::new(1000, 0),
+            Point::new(-1000, 0),
+            Point::ORIGIN,
+            true,
+        )
+        .unwrap();
         let b = h.bbox();
         assert!(b.max.y >= 1000 && b.min.y >= -2);
     }
 
     #[test]
     fn huge_arc_segment_count_is_bounded() {
-        let a = Arc::new(Point::new(1_000_000_000, 0), Point::new(1_000_000_000, 0), Point::ORIGIN, true).unwrap();
+        let a = Arc::new(
+            Point::new(1_000_000_000, 0),
+            Point::new(1_000_000_000, 0),
+            Point::ORIGIN,
+            true,
+        )
+        .unwrap();
         assert!(a.approximate(1).is_err());
         assert!(a.approximate(1_000).is_ok());
     }

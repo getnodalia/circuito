@@ -23,7 +23,11 @@ pub enum PcbError {
     Parse { what: &'static str, detail: String },
     /// The file declares a format version this engine does not know.
     #[error("unsupported {what} format version {found} (this engine reads version {supported})")]
-    UnsupportedVersion { what: &'static str, found: u64, supported: u32 },
+    UnsupportedVersion {
+        what: &'static str,
+        found: u64,
+        supported: u32,
+    },
     /// The input is larger than the engine's safety limits.
     #[error("{what} is too large: {detail}")]
     TooLarge { what: &'static str, detail: String },
@@ -37,10 +41,16 @@ pub type Result<T> = std::result::Result<T, PcbError>;
 
 impl PcbError {
     pub(crate) fn range(what: impl Into<String>, detail: impl Into<String>) -> Self {
-        PcbError::OutOfRange { what: what.into(), detail: detail.into() }
+        PcbError::OutOfRange {
+            what: what.into(),
+            detail: detail.into(),
+        }
     }
     pub(crate) fn geometry(what: impl Into<String>, detail: impl Into<String>) -> Self {
-        PcbError::Geometry { what: what.into(), detail: detail.into() }
+        PcbError::Geometry {
+            what: what.into(),
+            detail: detail.into(),
+        }
     }
     pub(crate) fn invalid(detail: impl Into<String>) -> Self {
         PcbError::Invalid(detail.into())

@@ -20,7 +20,10 @@ pub fn point_segment_dist2(p: Point, a: Point, b: Point) -> Ratio {
         return Ratio::int(p.dist2(b));
     }
     let c = cross(a, b, p).unsigned_abs();
-    Ratio { num: c.saturating_mul(c), den: len2 }
+    Ratio {
+        num: c.saturating_mul(c),
+        den: len2,
+    }
 }
 
 /// Squared distance between two closed segments, exactly. Zero when they touch or cross.
@@ -54,7 +57,10 @@ mod tests {
         // on the segment
         assert!(point_segment_dist2(p(4, 0), p(0, 0), p(10, 0)).is_zero());
         // degenerate segment
-        assert_eq!(point_segment_dist2(p(3, 4), p(0, 0), p(0, 0)).cmp_ratio(Ratio::int(25)), Ordering::Equal);
+        assert_eq!(
+            point_segment_dist2(p(3, 4), p(0, 0), p(0, 0)).cmp_ratio(Ratio::int(25)),
+            Ordering::Equal
+        );
         // diagonal: distance from (0,2) to line y=x is sqrt(2), squared 2
         let r = point_segment_dist2(p(0, 2), p(0, 0), p(10, 10));
         assert_eq!(r.cmp_ratio(Ratio::int(2)), Ordering::Equal);

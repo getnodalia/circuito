@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 use crate::units::Nm;
 
 /// A point in nanometres (Y up).
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Default)]
+#[derive(
+    Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Default,
+)]
 #[serde(from = "[i64; 2]", into = "[i64; 2]")]
 pub struct Point {
     pub x: Nm,
@@ -33,7 +35,10 @@ impl Point {
 
     /// Translation by `(dx, dy)`, `None` on overflow.
     pub fn checked_add(self, dx: Nm, dy: Nm) -> Option<Point> {
-        Some(Point { x: self.x.checked_add(dx)?, y: self.y.checked_add(dy)? })
+        Some(Point {
+            x: self.x.checked_add(dx)?,
+            y: self.y.checked_add(dy)?,
+        })
     }
 
     /// Squared distance, exact (no overflow for any two `i64` points).
@@ -73,7 +78,11 @@ pub fn orient(o: Point, a: Point, b: Point) -> i32 {
 
 /// True when `p` lies on the closed segment `a`-`b` (exact).
 pub fn on_segment(a: Point, b: Point, p: Point) -> bool {
-    cross(a, b, p) == 0 && p.x >= a.x.min(b.x) && p.x <= a.x.max(b.x) && p.y >= a.y.min(b.y) && p.y <= a.y.max(b.y)
+    cross(a, b, p) == 0
+        && p.x >= a.x.min(b.x)
+        && p.x <= a.x.max(b.x)
+        && p.y >= a.y.min(b.y)
+        && p.y <= a.y.max(b.y)
 }
 
 /// True when the closed segments `a`-`b` and `c`-`d` share at least one point (exact).
@@ -85,7 +94,10 @@ pub fn segments_intersect(a: Point, b: Point, c: Point, d: Point) -> bool {
     if o1 != o2 && o3 != o4 {
         return true;
     }
-    (o1 == 0 && on_segment(a, b, c)) || (o2 == 0 && on_segment(a, b, d)) || (o3 == 0 && on_segment(c, d, a)) || (o4 == 0 && on_segment(c, d, b))
+    (o1 == 0 && on_segment(a, b, c))
+        || (o2 == 0 && on_segment(a, b, d))
+        || (o3 == 0 && on_segment(c, d, a))
+        || (o4 == 0 && on_segment(c, d, b))
 }
 
 /// True when the open segments cross at a single interior point of both (proper crossing).
@@ -125,7 +137,10 @@ impl Rect {
         }
     }
     pub fn intersects(self, o: Rect) -> bool {
-        self.min.x <= o.max.x && o.min.x <= self.max.x && self.min.y <= o.max.y && o.min.y <= self.max.y
+        self.min.x <= o.max.x
+            && o.min.x <= self.max.x
+            && self.min.y <= o.max.y
+            && o.min.y <= self.max.y
     }
     pub fn contains(self, p: Point) -> bool {
         p.x >= self.min.x && p.x <= self.max.x && p.y >= self.min.y && p.y <= self.max.y
@@ -136,7 +151,10 @@ impl Rect {
         Some(it.fold(Rect::from_point(first), |r, p| r.include(*p)))
     }
     pub fn center(self) -> Point {
-        Point::new(((self.min.x as i128 + self.max.x as i128) / 2) as i64, ((self.min.y as i128 + self.max.y as i128) / 2) as i64)
+        Point::new(
+            ((self.min.x as i128 + self.max.x as i128) / 2) as i64,
+            ((self.min.y as i128 + self.max.y as i128) / 2) as i64,
+        )
     }
 }
 
@@ -151,17 +169,45 @@ mod tests {
         assert_eq!(orient(a, b, Point::new(5, 1)), 1);
         assert_eq!(orient(a, b, Point::new(5, -1)), -1);
         assert_eq!(orient(a, b, Point::new(5, 0)), 0);
-        assert!(segments_intersect(a, b, Point::new(5, -1), Point::new(5, 1)));
-        assert!(segments_intersect(a, b, Point::new(10, 0), Point::new(20, 5)));
-        assert!(!segments_intersect(a, b, Point::new(11, 0), Point::new(20, 0)));
-        assert!(!segments_cross_properly(a, b, Point::new(10, 0), Point::new(20, 5)));
-        assert!(segments_cross_properly(a, b, Point::new(5, -1), Point::new(5, 1)));
+        assert!(segments_intersect(
+            a,
+            b,
+            Point::new(5, -1),
+            Point::new(5, 1)
+        ));
+        assert!(segments_intersect(
+            a,
+            b,
+            Point::new(10, 0),
+            Point::new(20, 5)
+        ));
+        assert!(!segments_intersect(
+            a,
+            b,
+            Point::new(11, 0),
+            Point::new(20, 0)
+        ));
+        assert!(!segments_cross_properly(
+            a,
+            b,
+            Point::new(10, 0),
+            Point::new(20, 5)
+        ));
+        assert!(segments_cross_properly(
+            a,
+            b,
+            Point::new(5, -1),
+            Point::new(5, 1)
+        ));
     }
 
     #[test]
     fn serde_is_a_pair() {
         let s = serde_json::to_string(&Point::new(3, -4)).unwrap();
         assert_eq!(s, "[3,-4]");
-        assert_eq!(serde_json::from_str::<Point>(&s).unwrap(), Point::new(3, -4));
+        assert_eq!(
+            serde_json::from_str::<Point>(&s).unwrap(),
+            Point::new(3, -4)
+        );
     }
 }
