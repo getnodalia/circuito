@@ -176,8 +176,9 @@ fn parse_erc(args: &[String]) -> Result<Command, UsageError> {
             _ => set_once(&mut file, "the input file", a.to_string())?,
         }
     }
-    let file =
-        file.ok_or_else(|| UsageError("`erc` needs a .circuito file (or `-` for stdin)".into()))?;
+    let file = file.ok_or_else(|| {
+        UsageError("`erc` needs a .circuito or .circ file (or `-` for stdin)".into())
+    })?;
     Ok(Command::Erc {
         file,
         json,
@@ -201,8 +202,9 @@ fn parse_netlist(args: &[String]) -> Result<Command, UsageError> {
             _ => set_once(&mut file, "the input file", a.to_string())?,
         }
     }
-    let file = file
-        .ok_or_else(|| UsageError("`netlist` needs a .circuito file (or `-` for stdin)".into()))?;
+    let file = file.ok_or_else(|| {
+        UsageError("`netlist` needs a .circuito or .circ file (or `-` for stdin)".into())
+    })?;
     Ok(Command::Netlist { file, output })
 }
 

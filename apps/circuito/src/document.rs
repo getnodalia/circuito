@@ -18,6 +18,8 @@ use crate::i18n::tr;
 
 /// The extension of a schematic.
 pub const SCHEMATIC_EXTENSIONS: [&str; 1] = ["circuito"];
+/// The extension of a circuit written in Circuito's text form.
+pub const SCRIPT_EXTENSIONS: [&str; 1] = ["circ"];
 /// The extensions of a SPICE deck.
 pub const SPICE_EXTENSIONS: [&str; 5] = ["cir", "sp", "spice", "net", "ckt"];
 /// The most lines of a netlist the Netlist tab keeps (a longer one is cut, and says so).
@@ -137,11 +139,19 @@ impl Circuit {
             .and_then(|p| p.extension())
             .and_then(|e| e.to_str())
             .map(str::to_ascii_lowercase);
+        let script = by_extension
+            .as_deref()
+            .is_some_and(|e| SCRIPT_EXTENSIONS.contains(&e));
         let schematic = by_extension
             .as_deref()
             .is_some_and(|e| SCHEMATIC_EXTENSIONS.contains(&e))
-            || text.trim_start().starts_with('{');
-        if schematic {
+            || (!script && text.trim_start().starts_with('{'));
+        if script {
+            let s = circuito_script::compile(text).map_err(|e| e.to_string())?;
+            let mut circuit = Circuit::from_schematic(s);
+            circuit.path = path.map(Path::to_path_buf);
+            Ok(circuit)
+        } else if schematic {
             let s = Schematic::from_json(text).map_err(|e| e.to_string())?;
             let mut circuit = Circuit::from_schematic(s);
             circuit.path = path.map(Path::to_path_buf);
@@ -204,6 +214,35 @@ impl Circuit {
             blocked,
             warnings: Vec::new(),
         }
+    }
+
+    /// A new, empty circuit that asks for an operating point.
+    pub fn blank() -> Circuit {
+        let mut s = Schematic::new("");
+        s.analyses = vec![Analysis::Op];
+        Circuit::from_schematic(s)
+    }
+
+    /// Whether the drawing can be edited (a SPICE deck has none).
+    pub fn editable(&self) -> bool {
+        self.schematic.is_some()
+    }
+
+    /// Work out again what the drawing says: the rules check, the netlist and what simulation
+    /// needs. The file, the sample and what the reader said stay as they were.
+    pub fn rederive(&mut self) {
+        let Some(schematic) = self.schematic.take() else {
+            return;
+        };
+        let (path, sample, warnings) = (
+            self.path.take(),
+            self.sample.take(),
+            std::mem::take(&mut self.warnings),
+        );
+        *self = Circuit::from_schematic(schematic);
+        self.path = path;
+        self.sample = sample;
+        self.warnings = warnings;
     }
 
     /// One of the circuits that come with the app.
@@ -343,10 +382,92 @@ fn divider() -> Schematic {
     b.build()
 }
 
+/// Whether `path` is a kind of file Circuito writes (a schematic or a circuit as code).
+pub fn is_writable_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase)
+        .is_some_and(|e| {
+            SCHEMATIC_EXTENSIONS.contains(&e.as_str()) || SCRIPT_EXTENSIONS.contains(&e.as_str())
+        })
+}
+
+/// `path` as the person named it, with `.circuito` added when it has no extension of ours.
+pub fn with_extension_if_missing(path: &Path) -> PathBuf {
+    if is_writable_extension(path) {
+        path.to_path_buf()
+    } else {
+        let mut name = path.as_os_str().to_owned();
+        name.push(".circuito");
+        PathBuf::from(name)
+    }
+}
+
+/// The text a file at `path` holds for `schematic`: JSON, or the text form for `.circ`.
+///
+/// # Errors
+/// The text form describes one sheet only; a schematic with several is saved as JSON.
+pub fn serialise(schematic: &Schematic, path: &Path) -> Result<String, String> {
+    let script = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase)
+        .is_some_and(|e| SCRIPT_EXTENSIONS.contains(&e.as_str()));
+    if script {
+        if schematic.sheets.len() != 1 {
+            return Err(
+                tr("Several sheets cannot be written as code; save as .circuito.").to_owned(),
+            );
+        }
+        let options = circuito_script::PrintOptions { layout: true };
+        Ok(circuito_script::print(
+            &circuito_script::design_of(schematic),
+            options,
+        ))
+    } else {
+        schematic.to_json().map_err(|e| e.to_string())
+    }
+}
+
+/// Write `text` to `path` through a temporary sibling, so a failure never leaves half a file.
+///
+/// # Errors
+/// The folder cannot be written to.
+pub fn write_atomically(path: &Path, text: &str) -> Result<(), String> {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = PathBuf::from(tmp);
+    std::fs::write(&tmp, text)
+        .and_then(|()| std::fs::rename(&tmp, path))
+        .map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            e.to_string()
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use circuito_erc::Severity;
+
+    #[test]
+    fn the_examples_written_as_code_open_and_are_ready_to_simulate() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+        let mut seen = 0;
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().and_then(|e| e.to_str()) != Some("circ") {
+                continue;
+            }
+            let text = std::fs::read_to_string(&path).unwrap();
+            let circuit = Circuit::from_text(Some(&path), &text)
+                .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+            assert!(circuit.schematic.is_some(), "{}", path.display());
+            assert!(!circuit.analyses().is_empty(), "{}", path.display());
+            seen += 1;
+        }
+        assert!(seen >= 3, "found {seen} examples");
+    }
 
     #[test]
     fn every_sample_is_clean_and_ready_to_simulate() {

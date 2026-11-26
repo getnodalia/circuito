@@ -10,6 +10,8 @@ use crate::i18n::tr;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Category {
     File,
+    Edit,
+    Draw,
     View,
     Simulation,
     Go,
@@ -17,8 +19,10 @@ pub enum Category {
 }
 
 impl Category {
-    pub const ALL: [Category; 5] = [
+    pub const ALL: [Category; 7] = [
         Category::File,
+        Category::Edit,
+        Category::Draw,
         Category::View,
         Category::Simulation,
         Category::Go,
@@ -28,6 +32,8 @@ impl Category {
     pub fn label(self) -> &'static str {
         match self {
             Category::File => "File",
+            Category::Edit => "Edit",
+            Category::Draw => "Draw",
             Category::View => "View",
             Category::Simulation => "Simulation",
             Category::Go => "Go",
@@ -38,9 +44,29 @@ impl Category {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cmd {
+    New,
     Open,
+    Save,
+    SaveAs,
     Reload,
     CloseDocument,
+    Undo,
+    Redo,
+    Cut,
+    Copy,
+    Paste,
+    Duplicate,
+    Delete,
+    SelectAll,
+    RotateRight,
+    RotateLeft,
+    MirrorHorizontal,
+    MirrorVertical,
+    ToolSelect,
+    ToolWire,
+    ToolLabel,
+    ToolPower,
+    ToolNoConnect,
     Home,
     FitView,
     ZoomIn,
@@ -48,6 +74,7 @@ pub enum Cmd {
     ToggleGrid,
     ShowSchematic,
     ShowNetlist,
+    ToggleScript,
     ToggleNavigator,
     ToggleProperties,
     ToggleBottomPanel,
@@ -83,10 +110,30 @@ const CMD_SHIFT: Modifiers = Modifiers {
 };
 
 impl Cmd {
-    pub const ALL: [Cmd; 27] = [
+    pub const ALL: [Cmd; 48] = [
+        Cmd::New,
         Cmd::Open,
+        Cmd::Save,
+        Cmd::SaveAs,
         Cmd::Reload,
         Cmd::CloseDocument,
+        Cmd::Undo,
+        Cmd::Redo,
+        Cmd::Cut,
+        Cmd::Copy,
+        Cmd::Paste,
+        Cmd::Duplicate,
+        Cmd::Delete,
+        Cmd::SelectAll,
+        Cmd::RotateRight,
+        Cmd::RotateLeft,
+        Cmd::MirrorHorizontal,
+        Cmd::MirrorVertical,
+        Cmd::ToolSelect,
+        Cmd::ToolWire,
+        Cmd::ToolLabel,
+        Cmd::ToolPower,
+        Cmd::ToolNoConnect,
         Cmd::Home,
         Cmd::FitView,
         Cmd::ZoomIn,
@@ -94,6 +141,7 @@ impl Cmd {
         Cmd::ToggleGrid,
         Cmd::ShowSchematic,
         Cmd::ShowNetlist,
+        Cmd::ToggleScript,
         Cmd::ToggleNavigator,
         Cmd::ToggleProperties,
         Cmd::ToggleBottomPanel,
@@ -116,7 +164,28 @@ impl Cmd {
     /// The stable id the global menu and automation use.
     pub fn id(self) -> &'static str {
         match self {
+            Cmd::New => "file.new",
             Cmd::Open => "file.open",
+            Cmd::Save => "file.save",
+            Cmd::SaveAs => "file.save_as",
+            Cmd::Undo => "edit.undo",
+            Cmd::Redo => "edit.redo",
+            Cmd::Cut => "edit.cut",
+            Cmd::Copy => "edit.copy",
+            Cmd::Paste => "edit.paste",
+            Cmd::Duplicate => "edit.duplicate",
+            Cmd::Delete => "edit.delete",
+            Cmd::SelectAll => "edit.select_all",
+            Cmd::RotateRight => "edit.rotate",
+            Cmd::RotateLeft => "edit.rotate_back",
+            Cmd::MirrorHorizontal => "edit.mirror_horizontal",
+            Cmd::MirrorVertical => "edit.mirror_vertical",
+            Cmd::ToolSelect => "draw.select",
+            Cmd::ToolWire => "draw.wire",
+            Cmd::ToolLabel => "draw.label",
+            Cmd::ToolPower => "draw.power",
+            Cmd::ToolNoConnect => "draw.no_connect",
+            Cmd::ToggleScript => "view.script",
             Cmd::Reload => "file.reload",
             Cmd::CloseDocument => "file.close",
             Cmd::Home => "go.home",
@@ -153,7 +222,28 @@ impl Cmd {
     /// The English label (translated where it is drawn).
     pub fn label(self) -> &'static str {
         match self {
+            Cmd::New => "New circuit",
             Cmd::Open => "Open…",
+            Cmd::Save => "Save",
+            Cmd::SaveAs => "Save as…",
+            Cmd::Undo => "Undo",
+            Cmd::Redo => "Redo",
+            Cmd::Cut => "Cut",
+            Cmd::Copy => "Copy",
+            Cmd::Paste => "Paste",
+            Cmd::Duplicate => "Duplicate",
+            Cmd::Delete => "Delete",
+            Cmd::SelectAll => "Select all",
+            Cmd::RotateRight => "Rotate",
+            Cmd::RotateLeft => "Rotate the other way",
+            Cmd::MirrorHorizontal => "Mirror left to right",
+            Cmd::MirrorVertical => "Mirror top to bottom",
+            Cmd::ToolSelect => "Select and move",
+            Cmd::ToolWire => "Draw wires",
+            Cmd::ToolLabel => "Place a net label",
+            Cmd::ToolPower => "Place a ground or supply",
+            Cmd::ToolNoConnect => "Place a no-connect flag",
+            Cmd::ToggleScript => "Show the code",
             Cmd::Reload => "Reload from disk",
             Cmd::CloseDocument => "Close circuit",
             Cmd::Home => "Home",
@@ -185,13 +275,33 @@ impl Cmd {
 
     pub fn category(self) -> Category {
         match self {
-            Cmd::Open | Cmd::Reload | Cmd::CloseDocument => Category::File,
+            Cmd::New | Cmd::Open | Cmd::Save | Cmd::SaveAs | Cmd::Reload | Cmd::CloseDocument => {
+                Category::File
+            }
+            Cmd::Undo
+            | Cmd::Redo
+            | Cmd::Cut
+            | Cmd::Copy
+            | Cmd::Paste
+            | Cmd::Duplicate
+            | Cmd::Delete
+            | Cmd::SelectAll
+            | Cmd::RotateRight
+            | Cmd::RotateLeft
+            | Cmd::MirrorHorizontal
+            | Cmd::MirrorVertical => Category::Edit,
+            Cmd::ToolSelect
+            | Cmd::ToolWire
+            | Cmd::ToolLabel
+            | Cmd::ToolPower
+            | Cmd::ToolNoConnect => Category::Draw,
             Cmd::FitView
             | Cmd::ZoomIn
             | Cmd::ZoomOut
             | Cmd::ToggleGrid
             | Cmd::ShowSchematic
             | Cmd::ShowNetlist
+            | Cmd::ToggleScript
             | Cmd::ToggleNavigator
             | Cmd::ToggleProperties
             | Cmd::ToggleBottomPanel
@@ -215,7 +325,28 @@ impl Cmd {
     /// the keyboard.
     pub fn shortcut(self) -> Option<KeyboardShortcut> {
         match self {
+            Cmd::New => s(CMD, Key::N),
             Cmd::Open => s(CMD, Key::O),
+            Cmd::Save => s(CMD, Key::S),
+            Cmd::SaveAs => s(CMD_SHIFT, Key::S),
+            Cmd::Undo => s(CMD, Key::Z),
+            Cmd::Redo => s(CMD_SHIFT, Key::Z),
+            Cmd::Cut => s(CMD, Key::X),
+            Cmd::Copy => s(CMD, Key::C),
+            Cmd::Paste => s(CMD, Key::V),
+            Cmd::Duplicate => s(CMD, Key::D),
+            Cmd::Delete => s(NONE, Key::Delete),
+            Cmd::SelectAll => s(CMD, Key::A),
+            Cmd::RotateRight => s(NONE, Key::R),
+            Cmd::RotateLeft => s(SHIFT, Key::R),
+            Cmd::MirrorHorizontal => s(NONE, Key::X),
+            Cmd::MirrorVertical => s(NONE, Key::Y),
+            Cmd::ToolSelect => s(NONE, Key::V),
+            Cmd::ToolWire => s(NONE, Key::W),
+            Cmd::ToolLabel => s(NONE, Key::L),
+            Cmd::ToolPower => s(NONE, Key::P),
+            Cmd::ToolNoConnect => s(NONE, Key::Q),
+            Cmd::ToggleScript => s(CMD, Key::E),
             Cmd::Reload => s(CMD, Key::R),
             Cmd::CloseDocument => s(CMD, Key::W),
             Cmd::Home => s(CMD_SHIFT, Key::H),
@@ -253,7 +384,28 @@ impl Cmd {
     /// The icon in menus and the command search (an NDL icon name), when it has one.
     pub fn icon(self) -> Option<&'static str> {
         Some(match self {
+            Cmd::New => "new",
             Cmd::Open => "open",
+            Cmd::Save => "save",
+            Cmd::SaveAs => "save-as",
+            Cmd::Undo => "undo",
+            Cmd::Redo => "redo",
+            Cmd::Cut => "cut",
+            Cmd::Copy => "copy",
+            Cmd::Paste => "paste",
+            Cmd::Duplicate => "new-item",
+            Cmd::Delete => "delete",
+            Cmd::SelectAll => "select-objects",
+            Cmd::RotateRight => "rotate",
+            Cmd::RotateLeft => "rotate-ccw",
+            Cmd::MirrorHorizontal => "flip",
+            Cmd::MirrorVertical => "flip-vertical",
+            Cmd::ToolSelect => "select",
+            Cmd::ToolWire => "pen",
+            Cmd::ToolLabel => "tag",
+            Cmd::ToolPower => "power",
+            Cmd::ToolNoConnect => "x-line",
+            Cmd::ToggleScript => "code",
             Cmd::Reload => "refresh",
             Cmd::CloseDocument => "close",
             Cmd::Home => "home",
@@ -288,9 +440,20 @@ impl Cmd {
         self.shortcut().map(|s| label_of(&s, mac))
     }
 
+    /// Whether a text field answers this command itself while the person types in it.
+    pub fn is_text_edit_key(self) -> bool {
+        matches!(
+            self,
+            Cmd::Undo | Cmd::Redo | Cmd::Cut | Cmd::Copy | Cmd::Paste | Cmd::SelectAll
+        )
+    }
+
     /// Whether the shortcut has no modifier, so a text field must keep it for typing.
     pub fn is_plain_key(self) -> bool {
-        self.shortcut().is_some_and(|k| k.modifiers == NONE)
+        self.shortcut().is_some_and(|k| {
+            let m = k.modifiers;
+            !(m.command || m.ctrl || m.alt || m.mac_cmd)
+        })
     }
 }
 
@@ -412,6 +575,6 @@ mod tests {
     #[test]
     fn the_command_list_is_complete() {
         // Adding a command without listing it in ALL would leave it with no menu entry.
-        assert_eq!(Cmd::ALL.len(), 27);
+        assert_eq!(Cmd::ALL.len(), 48);
     }
 }

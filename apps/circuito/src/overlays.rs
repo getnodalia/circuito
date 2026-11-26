@@ -11,7 +11,7 @@ use nodalia_theme::about::{self, Info, Link};
 use nodalia_theme::engineering::{self as eng, Look};
 use nodalia_theme::for_egui::color;
 
-use crate::app::{App, Overlay};
+use crate::app::{App, Overlay, Pending};
 use crate::widgets::creator;
 
 type Shown = (Overlay, bool);
@@ -52,6 +52,7 @@ pub fn show(ctx: &egui::Context, app: &mut App, look: &Look) {
         Overlay::Preferences => preferences(ctx, app, look),
         Overlay::Shortcuts(filter) => shortcuts(ctx, look, filter),
         Overlay::About => about_window(ctx, app, look),
+        Overlay::Unsaved(pending) => unsaved(ctx, app, look, pending),
     };
     // A command run from inside an overlay may have opened another one: keep that.
     if matches!(app.overlay, Overlay::None) && !close {
@@ -236,7 +237,10 @@ fn preferences(ctx: &egui::Context, app: &mut App, look: &Look) -> Shown {
 
                 section(ui, look, tr("Simulation"));
                 changed |= ui
-                    .checkbox(&mut s.auto_run, tr("Run the analyses when a circuit opens"))
+                    .checkbox(
+                        &mut s.auto_run,
+                        tr("Run the analyses when a circuit opens or changes"),
+                    )
                     .changed();
                 ui.label(
                     RichText::new(tr(
@@ -386,5 +390,97 @@ fn about_window(ctx: &egui::Context, app: &mut App, look: &Look) -> Shown {
         (Overlay::None, true)
     } else {
         (Overlay::About, false)
+    }
+}
+
+// --- Unsaved changes ----------------------------------------------------------------------------
+
+fn unsaved(ctx: &egui::Context, app: &mut App, look: &Look, pending: Pending) -> Shown {
+    let p = look.palette;
+    let names: Vec<(u64, String)> = app
+        .ws
+        .docs()
+        .iter()
+        .filter(|d| d.dirty())
+        .map(|d| (d.id, d.circuit.name()))
+        .collect();
+    let target = match pending {
+        Pending::Close(id) => names.iter().find(|(i, _)| *i == id).cloned(),
+        Pending::Quit => None,
+    };
+    // Nothing is left to ask about.
+    if names.is_empty() || (matches!(pending, Pending::Close(_)) && target.is_none()) {
+        if let Pending::Close(id) = pending {
+            app.request_close(id);
+        }
+        return (Overlay::None, true);
+    }
+    enum Answer {
+        Cancel,
+        Discard,
+        Save,
+    }
+    let mut answer: Option<Answer> = None;
+    let dismissed = modal(ctx, look, "circuito-unsaved", 440.0, false, |ui| {
+        let title = match &target {
+            Some((_, name)) => trf("Save the changes to {}?", &[name]),
+            None => tr("Quit with unsaved changes?").to_owned(),
+        };
+        ui.label(
+            RichText::new(title)
+                .font(eng::panel_title())
+                .color(color(p.text_primary)),
+        );
+        ui.add_space(8.0);
+        let body = match &target {
+            Some(_) => tr("Your changes are lost if you do not save them.").to_owned(),
+            None => trf(
+                "These circuits have changes that are not saved: {}",
+                &[&names
+                    .iter()
+                    .map(|(_, n)| n.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")],
+            ),
+        };
+        ui.label(
+            RichText::new(body)
+                .font(eng::body())
+                .color(color(p.text_secondary)),
+        );
+        ui.add_space(14.0);
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            if target.is_some() && ui.button(tr("Save")).clicked() {
+                answer = Some(Answer::Save);
+            }
+            if ui
+                .button(if target.is_some() {
+                    tr("Discard")
+                } else {
+                    tr("Quit without saving")
+                })
+                .clicked()
+            {
+                answer = Some(Answer::Discard);
+            }
+            if ui.button(tr("Cancel")).clicked() {
+                answer = Some(Answer::Cancel);
+            }
+        });
+    });
+    match answer {
+        Some(Answer::Save) => {
+            if let Pending::Close(id) = pending {
+                app.save_then_close(id);
+            }
+            (Overlay::None, true)
+        }
+        Some(Answer::Discard) => {
+            app.discard(pending);
+            (Overlay::None, true)
+        }
+        Some(Answer::Cancel) => (Overlay::None, true),
+        None if dismissed => (Overlay::None, true),
+        None => (Overlay::Unsaved(pending), false),
     }
 }

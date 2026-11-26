@@ -21,6 +21,7 @@ path = "src/main.rs"
 [dependencies]
 circuito-core = { path = "../../crates/circuito-core" }
 circuito-erc = { path = "../../crates/circuito-erc" }
+circuito-script = { path = "../../crates/circuito-script" }
 circuito-spice = { path = "../../crates/circuito-spice" }
 circuito-sim = { path = "../../crates/circuito-sim" }
 eframe.workspace = true

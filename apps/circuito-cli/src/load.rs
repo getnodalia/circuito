@@ -31,9 +31,26 @@ pub fn read_text(path: &str, stdin: &mut dyn Read) -> Result<String, String> {
     String::from_utf8(buf).map_err(|_| format!("{path} is not valid UTF-8 text"))
 }
 
-/// Is this text a `.circuito` schematic (JSON) rather than a SPICE deck?
+/// Is this a `.circ` circuit written as code?
+fn is_script(path: &str) -> bool {
+    path.to_ascii_lowercase().ends_with(".circ")
+}
+
+/// Is this text a schematic (`.circuito` JSON or `.circ` code) rather than a SPICE deck?
 fn is_schematic(path: &str, text: &str) -> bool {
-    path.ends_with(".circuito") || text.trim_start().starts_with('{')
+    is_script(path) || path.ends_with(".circuito") || text.trim_start().starts_with('{')
+}
+
+/// Read a schematic written as JSON (`.circuito`) or as code (`.circ`).
+///
+/// # Errors
+/// A message naming the file and, for code, the line.
+pub fn schematic_from_text(path: &str, text: &str) -> Result<Schematic, String> {
+    if is_script(path) {
+        circuito_script::compile(text).map_err(|e| format!("{path}: {e}"))
+    } else {
+        Schematic::from_json(text).map_err(|e| format!("{path}: {e}"))
+    }
 }
 
 /// A netlist ready to simulate, with what was said while reading it.
@@ -87,7 +104,7 @@ pub fn extract_text(
     path: &str,
     text: &str,
 ) -> Result<(circuito_erc::Extraction, Vec<String>), String> {
-    let schematic = Schematic::from_json(text).map_err(|e| format!("{path}: {e}"))?;
+    let schematic = schematic_from_text(path, text)?;
     let extraction = circuito_erc::extract(&schematic).map_err(|e| format!("{path}: {e}"))?;
     Ok((extraction, Vec::new()))
 }

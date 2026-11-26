@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use circuito_app::commands::Cmd;
-use circuito_app::document::{Kind, Sample};
+use circuito_app::document::Sample;
 use circuito_app::findings;
 use circuito_app::format::eng;
 use circuito_app::geometry::{Selection, View};
@@ -35,12 +35,6 @@ fn caption(look: &Look, text: impl Into<String>) -> RichText {
     RichText::new(text.into())
         .font(eng_ui::caption())
         .color(color(look.palette.text_secondary))
-}
-
-fn body(look: &Look, text: impl Into<String>) -> RichText {
-    RichText::new(text.into())
-        .font(eng_ui::body())
-        .color(color(look.palette.text_primary))
 }
 
 /// A read-only value in the monospaced face, cut at the panel's edge (the whole text is its
@@ -208,112 +202,6 @@ pub fn navigator(ui: &mut Ui, look: &Look, ws: &mut Workspace) {
     if let Some(i) = pick_analysis {
         ws.choose_analysis(i);
     }
-}
-
-// --- Properties ---------------------------------------------------------------------------------
-
-pub fn properties(ui: &mut Ui, look: &Look, doc: Option<&Open>) {
-    let Some(doc) = doc else {
-        eng_ui::panel_header(ui, look, tr("Properties"), |_| {});
-        centred_message(ui, look, tr("No circuit is open."));
-        return;
-    };
-    egui::ScrollArea::vertical()
-        .id_salt("properties-scroll")
-        .auto_shrink([false, false])
-        .show(ui, |ui| {
-            if let Some(info) = doc.part_info() {
-                eng_ui::panel_header(ui, look, &info.refdes, |ui| {
-                    ui.label(caption(look, info.name.clone()));
-                });
-                eng_ui::properties(ui, "part-props", |ui| {
-                    eng_ui::property(ui, look, tr("Value"), |ui| value(ui, look, &info.value));
-                    eng_ui::property(ui, look, tr("Position"), |ui| {
-                        value(
-                            ui,
-                            look,
-                            &format!("{}, {}", info.position.0, info.position.1),
-                        )
-                    });
-                    eng_ui::property(ui, look, tr("Rotation"), |ui| {
-                        value(ui, look, &format!("{}°", info.rotation))
-                    });
-                    if info.mirror {
-                        eng_ui::property(ui, look, tr("Mirrored"), |ui| value(ui, look, tr("Yes")));
-                    }
-                    if let Some(model) = &info.model {
-                        eng_ui::property(ui, look, tr("Model"), |ui| value(ui, look, model));
-                    }
-                    for (k, v) in &info.fields {
-                        eng_ui::property(ui, look, k, |ui| value(ui, look, v));
-                    }
-                });
-                ui.add_space(10.0);
-                eng_ui::panel_header(ui, look, tr("Pins"), |ui| {
-                    ui.label(caption(look, info.pins.len().to_string()));
-                });
-                eng_ui::properties(ui, "pin-props", |ui| {
-                    for pin in &info.pins {
-                        let name = if pin.name.is_empty() || pin.name == pin.number {
-                            pin.number.clone()
-                        } else {
-                            format!("{} · {}", pin.number, pin.name)
-                        };
-                        eng_ui::property(ui, look, &name, |ui| {
-                            value(ui, look, pin.net.as_deref().unwrap_or("—"))
-                        });
-                    }
-                });
-                return;
-            }
-            eng_ui::panel_header(ui, look, tr("Circuit"), |_| {});
-            let c = &doc.circuit;
-            eng_ui::properties(ui, "circuit-props", |ui| {
-                eng_ui::property(ui, look, tr("Title"), |ui| value(ui, look, &c.title));
-                eng_ui::property(ui, look, tr("Kind"), |ui| {
-                    value(
-                        ui,
-                        look,
-                        match c.kind {
-                            Kind::Schematic => tr("Schematic"),
-                            Kind::Spice => tr("SPICE deck"),
-                        },
-                    )
-                });
-                if let Some(s) = &c.schematic {
-                    let parts: usize = s.sheets.iter().map(|sh| sh.parts.len()).sum();
-                    let wires: usize = s.sheets.iter().map(|sh| sh.wires.len()).sum();
-                    eng_ui::property(ui, look, tr("Sheets"), |ui| {
-                        value(ui, look, &s.sheets.len().to_string())
-                    });
-                    eng_ui::property(ui, look, tr("Parts"), |ui| {
-                        value(ui, look, &parts.to_string())
-                    });
-                    eng_ui::property(ui, look, tr("Wires"), |ui| {
-                        value(ui, look, &wires.to_string())
-                    });
-                } else {
-                    eng_ui::property(ui, look, tr("Lines"), |ui| {
-                        value(ui, look, &c.netlist_lines.len().to_string())
-                    });
-                }
-                eng_ui::property(ui, look, tr("Analyses"), |ui| {
-                    value(ui, look, &doc.runs.len().to_string())
-                });
-                if let Some(path) = &c.path {
-                    eng_ui::property(ui, look, tr("File"), |ui| {
-                        ui.add(egui::Label::new(body(look, path.display().to_string())).wrap());
-                    });
-                }
-            });
-            if doc.circuit.schematic.is_some() {
-                ui.add_space(10.0);
-                ui.label(caption(
-                    look,
-                    tr("Click a part on the drawing to see its pins and the nets they are on."),
-                ));
-            }
-        });
 }
 
 // --- Rules check --------------------------------------------------------------------------------
@@ -681,8 +569,9 @@ fn operating_point(ui: &mut Ui, look: &Look, result: &circuito_sim::AnalysisResu
             };
             let half = rows.len().div_ceil(2).max(4);
             ui.columns(if rows.len() > 6 { 2 } else { 1 }, |cols| {
-                for (c, chunk) in cols.iter_mut().zip(rows.chunks(half)) {
-                    eng_ui::properties(c, "op-table", |ui| {
+                for (i, (c, chunk)) in cols.iter_mut().zip(rows.chunks(half)).enumerate() {
+                    // Each column is its own table: two with one id would draw over each other.
+                    eng_ui::properties(c, &format!("op-table-{i}"), |ui| {
                         for (name, v, u) in chunk {
                             eng_ui::property(ui, look, name, |ui| {
                                 value(ui, look, &eng(*v, unit(*u)))
@@ -850,6 +739,7 @@ pub fn status(
 
 /// What Home asked for.
 pub enum HomeAction {
+    New,
     Sample(Sample),
     Open,
     Recent(PathBuf),
@@ -880,22 +770,25 @@ pub fn home(
                     .color(color(look.palette.text_primary)),
             );
             ui.add_space(8.0);
-            let mut cards: Vec<StartCard> = Sample::ALL
-                .iter()
-                .map(|s| StartCard {
-                    icon: "sketch",
-                    name: tr(s.label()),
-                    detail: tr(s.detail()),
-                })
-                .collect();
+            let mut cards: Vec<StartCard> = vec![StartCard {
+                icon: "new",
+                name: tr("New circuit"),
+                detail: tr("An empty sheet to draw on or to write as code"),
+            }];
+            cards.extend(Sample::ALL.iter().map(|s| StartCard {
+                icon: "sketch",
+                name: tr(s.label()),
+                detail: tr(s.detail()),
+            }));
             cards.push(StartCard {
                 icon: "open",
                 name: tr("Open…"),
                 detail: tr("A circuit or SPICE deck from your computer"),
             });
             match eng_ui::start_cards(ui, look, &cards) {
-                Some(i) if i < Sample::ALL.len() => {
-                    if let Some(s) = Sample::ALL.get(i) {
+                Some(0) => action = Some(HomeAction::New),
+                Some(i) if i <= Sample::ALL.len() => {
+                    if let Some(s) = Sample::ALL.get(i - 1) {
                         action = Some(HomeAction::Sample(*s));
                     }
                 }
