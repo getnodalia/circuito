@@ -38,16 +38,18 @@
         <File Id="CircuitoExe" Source="$(var.BinDir)\circuito-app.exe" KeyPath="yes">
           <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Circuito" Description="Circuito electronics: open, check and simulate circuits" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="CircuitoIcon.ico" IconIndex="0" />
         </File>
+        <!-- A ProgId icon must be a File: the package icon is installed beside the exe for it. -->
+        <File Id="CircuitoIconFile" Name="circuito.ico" Source="$(var.IconPath)" />
 
         <!-- .circuito: Circuito's own schematic format; Circuito is its default app. The icon is the
              .ico of the package: circuito-app.exe carries no icon resource of its own yet. -->
-        <ProgId Id="Circuito.Document" Description="Circuito Schematic" Icon="CircuitoIcon.ico" IconIndex="0">
+        <ProgId Id="Circuito.Document" Description="Circuito Schematic" Icon="CircuitoIconFile" IconIndex="0">
           <Extension Id="circuito" ContentType="application/x-circuito">
             <Verb Id="open" Command="Open" TargetFile="CircuitoExe" Argument="&quot;%1&quot;" />
           </Extension>
         </ProgId>
         <!-- SPICE decks (.cir): offered under "Open with", never forced as the default. -->
-        <ProgId Id="Circuito.Spice" Description="SPICE Netlist" Icon="CircuitoIcon.ico" IconIndex="0" />
+        <ProgId Id="Circuito.Spice" Description="SPICE Netlist" Icon="CircuitoIconFile" IconIndex="0" />
         <RegistryValue Root="HKMU" Key="Software\Classes\Circuito.Spice\shell\open\command" Value="&quot;[#CircuitoExe]&quot; &quot;%1&quot;" Type="string" />
         <RegistryValue Root="HKMU" Key="Software\Classes\.cir\OpenWithProgids" Name="Circuito.Spice" Value="" Type="string" />
 
