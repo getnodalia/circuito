@@ -180,3 +180,155 @@ pub fn zone(b: &mut Board, net: Option<NetId>, layer: Layer, filled: Region) -> 
     });
     id
 }
+
+pub fn pad_at(
+    b: &mut Board,
+    num: &str,
+    net: Option<NetId>,
+    pos: Point,
+    w: i64,
+    h: i64,
+    shape: PadShape,
+) -> Pad {
+    smd_pad(b, num, net, pos, w, h, shape)
+}
+
+/// A board with every pad kind, tracks, an arc, vias and a zone with a hole.
+pub fn rich_board() -> Board {
+    let mut b = base_board();
+    let pads = vec![
+        pad_at(&mut b, "1", NA, p(-MM, 0), MM, 500_000, PadShape::Rect),
+        pad_at(
+            &mut b,
+            "2",
+            NB,
+            p(MM, 0),
+            800_000,
+            800_000,
+            PadShape::Circle,
+        ),
+        pad_at(
+            &mut b,
+            "3",
+            NA,
+            p(0, 1_500_000),
+            1_200_000,
+            600_000,
+            PadShape::Oval,
+        ),
+    ];
+    footprint(&mut b, "U1", p(10 * MM, 10 * MM), Side::Front, pads);
+
+    let pads = vec![
+        pad_at(&mut b, "1", NA, p(0, 0), MM, 500_000, PadShape::Rect),
+        pad_at(
+            &mut b,
+            "2",
+            NB,
+            p(3 * MM, 0),
+            1_400_000,
+            600_000,
+            PadShape::Oval,
+        ),
+        pad_at(
+            &mut b,
+            "3",
+            NC,
+            p(0, 3 * MM),
+            2 * MM,
+            MM,
+            PadShape::RoundRect {
+                corner_radius: 250_000,
+            },
+        ),
+    ];
+    let u2 = footprint(&mut b, "U2", p(30 * MM, 20 * MM), Side::Front, pads);
+    b.footprints
+        .iter_mut()
+        .find(|f| f.id == u2)
+        .unwrap()
+        .rotation = 30_000;
+
+    let pads = vec![pad_at(
+        &mut b,
+        "1",
+        NA,
+        p(MM, 0),
+        MM,
+        400_000,
+        PadShape::Rect,
+    )];
+    let u3 = footprint(&mut b, "U3", p(40 * MM, 40 * MM), Side::Back, pads);
+    b.footprints
+        .iter_mut()
+        .find(|f| f.id == u3)
+        .unwrap()
+        .rotation = 90_000;
+
+    let pads = vec![th_pad(&mut b, "1", NC, p(0, 0), 1_600_000, 800_000)];
+    footprint(&mut b, "J1", p(20 * MM, 40 * MM), Side::Front, pads);
+
+    let mut custom = pad_at(
+        &mut b,
+        "1",
+        GND,
+        p(0, 0),
+        0,
+        0,
+        PadShape::Custom {
+            polygon: vec![p(0, 0), p(MM, 0), p(0, MM)],
+        },
+    );
+    custom.paste = false;
+    footprint(&mut b, "U4", p(5 * MM, 45 * MM), Side::Front, vec![custom]);
+
+    track(
+        &mut b,
+        NA,
+        Layer::FCu,
+        200_000,
+        p(10 * MM, 10 * MM),
+        p(20 * MM, 10 * MM),
+    );
+    arc_track(
+        &mut b,
+        NB,
+        Layer::FCu,
+        250_000,
+        Arc::new(
+            p(30 * MM, 10 * MM),
+            p(35 * MM, 15 * MM),
+            p(30 * MM, 15 * MM),
+            true,
+        )
+        .unwrap(),
+    );
+    track(
+        &mut b,
+        NC,
+        Layer::BCu,
+        300_000,
+        p(10 * MM, 30 * MM),
+        p(12 * MM, 30 * MM),
+    );
+    via(&mut b, NA, p(25 * MM, 25 * MM), 600_000, 300_000);
+    let outer = vec![
+        p(2 * MM, 2 * MM),
+        p(8 * MM, 2 * MM),
+        p(8 * MM, 8 * MM),
+        p(2 * MM, 8 * MM),
+    ];
+    let hole = vec![
+        p(4 * MM, 4 * MM),
+        p(5 * MM, 4 * MM),
+        p(5 * MM, 5 * MM),
+        p(4 * MM, 5 * MM),
+    ];
+    zone(
+        &mut b,
+        GND,
+        Layer::FCu,
+        Region::new(outer, vec![hole]).unwrap(),
+    );
+    b
+}
