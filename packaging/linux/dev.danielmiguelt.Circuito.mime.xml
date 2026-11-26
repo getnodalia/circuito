@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Installed as share/mime/packages/dev.danielmiguelt.Circuito.xml (package.sh). Only Circuito's
+     own schematic format is declared: a SPICE deck is plain text with no extension of its own that
+     another application does not also use, so the app opens one when it is handed the file but does
+     not claim it. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-circuito">
+    <comment>Circuito schematic</comment>
+    <sub-class-of type="application/json"/>
+    <generic-icon name="dev.danielmiguelt.Circuito"/>
+    <glob pattern="*.circuito"/>
+  </mime-type>
+</mime-info>

@@ -1,0 +1,73 @@
+# .deb/.rpm packages (nfpm: https://nfpm.goreleaser.com). Run by package.sh, which stages
+# the file tree, substitutes its path for ${STAGE} (nfpm doesn't expand env vars in `src`) and
+# replaces @GLIBC_FLOOR@ with the newest glibc symbol version the binaries use, and exports VERSION
+# and NFPM_ARCH.
+#
+#   nfpm package -f packaging/linux/nfpm.yaml -p deb -t dist/release/
+name: circuito
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${VERSION}
+# semver: 0.2.0-rc.1 becomes 0.2.0~rc.1 in deb/rpm, so pre-releases sort before the release.
+version_schema: semver
+release: 1
+section: electronics
+priority: optional
+maintainer: ${CIRCUITO_MAINTAINER}
+vendor: Nodalia
+homepage: https://getnodalia.com/circuito
+license: MIT OR Apache-2.0
+description: |-
+  Electronics: open, check and simulate circuits.
+  Opens a schematic or a SPICE deck, runs the electrical rules check and the DC, AC and
+  transient analyses, and plots the results. circuito-app is the desktop app; circuito is the
+  headless command (sim, erc, netlist, drc, gerber). It cannot edit schematics yet.
+
+overrides:
+  deb:
+    depends:
+      - libc6 (>= @GLIBC_FLOOR@)
+      - libgcc-s1
+      - libxkbcommon0
+      - libxkbcommon-x11-0
+      - libegl1 | libvulkan1
+    recommends:
+      - libwayland-client0
+      - libx11-6
+      - libx11-xcb1
+      - libxcursor1
+      - libxi6
+      - libxrandr2
+      - xdg-desktop-portal
+  rpm:
+    # Library sonames rather than package names, so the same requirements resolve on Fedora/RHEL
+    # and openSUSE.
+    depends:
+      - libc.so.6(GLIBC_@GLIBC_FLOOR@)(64bit)
+      - libm.so.6(GLIBC_@GLIBC_FLOOR@)(64bit)
+      - libgcc_s.so.1()(64bit)
+      - libxkbcommon.so.0()(64bit)
+      - libxkbcommon-x11.so.0()(64bit)
+      - (libEGL.so.1()(64bit) or libvulkan.so.1()(64bit))
+    recommends:
+      - libwayland-client
+      - libX11
+      - libXcursor
+      - libXi
+      - libXrandr
+      - xdg-desktop-portal
+
+contents:
+  - src: ${STAGE}/usr/bin/circuito-app
+    dst: /usr/bin/circuito-app
+    file_info: { mode: 0755 }
+  - src: ${STAGE}/usr/bin/circuito
+    dst: /usr/bin/circuito
+    file_info: { mode: 0755 }
+  - src: ${STAGE}/usr/share/
+    dst: /usr/share/
+    type: tree
+
+scripts:
+  postinstall: packaging/linux/postinst.sh
+  postremove: packaging/linux/postinst.sh

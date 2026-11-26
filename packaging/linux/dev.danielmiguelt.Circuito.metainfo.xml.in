@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata (software centres). Template: package.sh substitutes @VERSION@ and @DATE@
+     from Cargo.toml and the build date. -->
+<component type="desktop-application">
+  <id>dev.danielmiguelt.Circuito</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT OR Apache-2.0</project_license>
+  <name>Circuito</name>
+  <summary>Open, check and simulate electronic circuits</summary>
+  <developer id="com.getnodalia">
+    <name>Nodalia</name>
+  </developer>
+  <description>
+    <p>
+      Circuito is Nodalia's electronics application. This first version opens a schematic or a SPICE
+      deck, draws it, lists the problems an electrical rules check finds and runs DC operating point,
+      AC, transient and DC sweep analyses with plots.
+    </p>
+    <p>
+      It does not edit schematics yet: you cannot draw or change a circuit in it, and nothing it
+      reports is certified or fit for safety-critical use. The command line that comes with it also
+      checks printed circuit boards and writes Gerber and Excellon files.
+    </p>
+  </description>
+  <launchable type="desktop-id">dev.danielmiguelt.Circuito.desktop</launchable>
+  <icon type="stock">dev.danielmiguelt.Circuito</icon>
+  <url type="homepage">https://getnodalia.com/circuito</url>
+  <url type="bugtracker">https://github.com/getnodalia/circuito/issues</url>
+  <url type="help">https://github.com/getnodalia/circuito</url>
+  <url type="contact">https://github.com/getnodalia/circuito/issues</url>
+  <categories>
+    <category>Science</category>
+    <category>Engineering</category>
+    <category>Electronics</category>
+  </categories>
+  <keywords>
+    <keyword>circuit</keyword>
+    <keyword>schematic</keyword>
+    <keyword>spice</keyword>
+    <keyword>simulation</keyword>
+    <keyword>electronics</keyword>
+  </keywords>
+  <branding>
+    <color type="primary" scheme_preference="light">#f2d77a</color>
+    <color type="primary" scheme_preference="dark">#7a5c00</color>
+  </branding>
+  <requires>
+    <display_length compare="ge">760</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <provides>
+    <binary>circuito-app</binary>
+    <binary>circuito</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>
