@@ -10,7 +10,7 @@ solver is borrowed. No UI, no I/O.
 ```rust
 use circuito_sim::{simulate, simulate_all, Options, Control};
 
-let results = simulate_all(&netlist, &Options::from_netlist(&netlist), &Control::default())?;
+let results = simulate_all(&netlist, &Control::new())?; // one Result per analysis card
 ```
 
 - `simulate(netlist, analysis, options, control)` runs one analysis; `simulate_all` runs every card.
@@ -85,4 +85,4 @@ SPICE and Spectre*) and Shichman-Hodges (1968).
 
 ## Dependency note
 
-`nodalia-numerics` is a path dependency on the sibling `abaco` checkout until it is published.
+`nodalia-numerics` is a git dependency on getnodalia/abaco, pinned by revision.
