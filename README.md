@@ -49,6 +49,29 @@ The Gerber and Excellon files were read back by our own readers, not opened in a
 What does not exist yet (see [`ROADMAP.md`](ROADMAP.md)): the schematic editor (the app only views
 what it opens), the PCB editor, `.noise`, `.step` and Monte Carlo, zone fill, autorouting, 3D board, PLC and FPGA tools.
 
+## Install
+
+Every release on [GitHub](https://github.com/getnodalia/circuito/releases) carries these files
+(`<version>` is the release, for example `0.1.0`). None of them is signed with a developer
+certificate, so the first start asks you to confirm.
+
+| System | File | Notes |
+|---|---|---|
+| Linux x86_64 | `circuito-<version>-linux-x86_64.AppImage` | Make it executable and run it. |
+| | `.deb`, `.rpm`, `.tar.gz` of the same name | `sudo apt install ./circuito-<version>-linux-x86_64.deb`, `sudo dnf install ./circuito-<version>-linux-x86_64.rpm`, or unpack the tarball (`bin/`, `share/`). |
+| macOS | `circuito-<version>-macos-universal.dmg` | Intel and Apple silicon. Ad hoc signed, not notarized: open the app with right click, Open. |
+| Windows x64 | `circuito-<version>-windows-x64.msi` | Installs for your account or for everyone. SmartScreen warns on the first start (More info, Run anyway). |
+| | `circuito-<version>-windows-x64-portable.zip` | Unpack anywhere. |
+
+Each package has the desktop app (`circuito-app`) and the `circuito` command. The macOS command-line
+build is also published alone as `circuito-cli-<version>-macos-universal.zip`. Checksums are in
+`SHA256SUMS` (Linux), `SHA256SUMS-macos` and `SHA256SUMS-windows`.
+
+The release pipeline is described in [`docs/release-notes/README.md`](docs/release-notes/README.md);
+the packaging scripts are in [`packaging/`](packaging/). The Linux packages were built and the
+AppImage started on one machine; the macOS and Windows packaging, and the workflows themselves,
+run on GitHub for the first time with the first release.
+
 ## Build and test
 
 ```bash
@@ -69,5 +92,7 @@ cargo run -p circuito-app -- examples/rc-lowpass.cir   # the app (Linux needs li
 | `apps/circuito-cli` | The `circuito` command |
 | `apps/circuito` | The egui app (`circuito-app`); its logic is a testable library, the windows are the binary |
 | `examples/` | Small circuits and a sample board used by the tests |
+| `packaging/` | Installers: Linux (AppImage, deb, rpm, tar.gz), macOS DMG, Windows MSI and zip, and the icon files |
+| `assets/app-icon/` | The app icon in the sizes and formats the installers need |
 
 Rules for contributors and agents: [`AGENTS.md`](AGENTS.md). Security: [`SECURITY.md`](SECURITY.md).
