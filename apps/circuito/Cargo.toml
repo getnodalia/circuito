@@ -26,6 +26,7 @@ circuito-sim = { path = "../../crates/circuito-sim" }
 eframe.workspace = true
 egui.workspace = true
 nodalia-theme.workspace = true
+png = "0.18"
 serde.workspace = true
 serde_json.workspace = true
 directories = "6"

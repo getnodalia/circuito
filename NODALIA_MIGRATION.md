@@ -12,8 +12,7 @@ workflows, pinned by commit, plus the release-notes check.
 
 Engineering suite look through `nodalia_theme::engineering`, shared with Forja, Torno and Vortia;
 release workflows (`release-auto`, `release-linux`, `release-macos` with a DMG window in Circuito's
-colour, `release-windows`) through Foundation's `release-tag` and `release-publish`; the portrait
-app icon; website page getnodalia.com/circuito; a Nodalia Launcher catalog entry.
+colour, `release-windows`) through Foundation's `release-tag` and `release-publish`; website page getnodalia.com/circuito; a Nodalia Launcher catalog entry.
 
 ## Inherited dependencies still pending
 
@@ -28,8 +27,8 @@ None.
 ## NDL work pending
 
 - The accent lands in nodalia-design first; until then the app runs on the default accent.
-- The app icon is a portrait of a historical figure. Until it lands the app draws a placeholder
-  mark in code (`apps/circuito/src/icon.rs`), recorded in `ATTRIBUTION.md`.
+- The app icon is a portrait of Gustav Kirchhoff (`assets/icons/`, made with `tools/app-portrait` in
+  nodalia-design).
 - Not verified yet: the Linux global menu on a real shell, NDL window controls on macOS and
   Windows, Wayland. The release workflows are still missing.
 
