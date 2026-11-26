@@ -68,11 +68,13 @@ fn main() -> ExitCode {
             .with_min_inner_size([860.0, 560.0]),
         ndl_controls,
     );
-    viewport = viewport.with_icon(egui::IconData {
-        rgba: circuito_app::icon::rgba(256),
-        width: 256,
-        height: 256,
-    });
+    if let Some((width, height, rgba)) = circuito_app::icon::rgba(circuito_app::icon::LARGE) {
+        viewport = viewport.with_icon(egui::IconData {
+            rgba,
+            width: u32::try_from(width).unwrap_or(0),
+            height: u32::try_from(height).unwrap_or(0),
+        });
+    }
     let options = eframe::NativeOptions {
         viewport,
         ..Default::default()

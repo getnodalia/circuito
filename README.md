@@ -93,6 +93,7 @@ cargo run -p circuito-app -- examples/rc-lowpass.cir   # the app (Linux needs li
 | `apps/circuito` | The egui app (`circuito-app`); its logic is a testable library, the windows are the binary |
 | `examples/` | Small circuits and a sample board used by the tests |
 | `packaging/` | Installers: Linux (AppImage, deb, rpm, tar.gz), macOS DMG, Windows MSI and zip, and the icon files |
-| `assets/app-icon/` | The app icon in the sizes and formats the installers need |
+| `assets/icons/` | The app icon: the Kirchhoff portrait artwork and its Linux sizes |
+| `assets/app-icon/` | The Windows `.ico` and macOS `.icns` made from it by `packaging/icons.sh` |
 
 Rules for contributors and agents: [`AGENTS.md`](AGENTS.md). Security: [`SECURITY.md`](SECURITY.md).

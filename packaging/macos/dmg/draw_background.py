@@ -7,7 +7,7 @@
 The layout, the lettering and the arrow's place are nodalia-design's own
 (tools/dmg-background/draw_background.py): this file only adds Circuito to its table, with a
 picture of what the app does (an RC low-pass drawn as a schematic, and its step response) and
-Circuito's accent, #C99A06. When nodalia-design carries a Circuito entry of its own, delete this
+Circuito's accent, #C06A4F. When nodalia-design carries a Circuito entry of its own, delete this
 file and regenerate with that one. The output is flat inks and outlined text, byte-for-byte
 reproducible, and needs no fonts to render.
 """
@@ -78,7 +78,7 @@ def a_circuito(c):
             + ndl.arrowhead(ar, yc, ink))
 
 
-ndl.APPS["circuito"] = ("Circuito", "Electrónica y simulación", "#C99A06", "#A07A04", m_circuito, a_circuito)
+ndl.APPS["circuito"] = ("Circuito", "Electrónica y simulación", "#C06A4F", "#9A5540", m_circuito, a_circuito)
 
 if __name__ == "__main__":
     drawn = ndl.svg("circuito").replace(
