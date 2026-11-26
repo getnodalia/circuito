@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-//! Circuito PCB engine.
+//! Circuito PCB engine: the board model, exact integer geometry, the design rules check, and
+//! manufacturing outputs (Gerber RS-274X/X2, Excellon, pick-and-place, BOM).
+//!
+//! Every coordinate is an integer count of nanometres. See the crate README for what is verified,
+//! what is not, and the limits.
 #![deny(
     clippy::unwrap_used,
     clippy::expect_used,
