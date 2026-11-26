@@ -7,7 +7,7 @@ CI, nothing extra installed in the job).
 
 | File | What |
 |---|---|
-| `draw_background.py` | Writes `background.svg`. The layout and the lettering are [nodalia-design](https://github.com/getnodalia/nodalia-design)'s (`tools/dmg-background/draw_background.py`, imported from a checkout named by `NODALIA_DESIGN_DIR`); this file adds Circuito to its table: two Nodalia islands on the window colour, the left one in Circuito's colour (`#C99A06`) with an RC low-pass drawn as a schematic and its step response, the right one white under the icons, the arrow a resistor on a wire. Delete it when nodalia-design has a Circuito entry of its own. |
+| `draw_background.py` | Writes `background.svg`. The layout and the lettering are [nodalia-design](https://github.com/getnodalia/nodalia-design)'s (`tools/dmg-background/draw_background.py`, imported from a checkout named by `NODALIA_DESIGN_DIR`); this file adds Circuito to its table: two Nodalia islands on the window colour, the left one in Circuito's colour (`#C06A4F`) with an RC low-pass drawn as a schematic and its step response, the right one white under the icons, the arrow a resistor on a wire. Delete it when nodalia-design has a Circuito entry of its own. |
 | `background.svg` | The drawing. Its text (Sora, OFL-1.1) is outlined, so rendering it needs no fonts. |
 | `background.tiff` | The background at 1x (660 × 400 px, 72 dpi) and 2x (1320 × 800 px, 144 dpi) in one HiDPI TIFF (16-colour palette, Deflate, sRGB). Goes to `.background/background.tiff`. |
 | `dmg-layout.DS_Store` | Finder's view settings for the volume: window size, icon size 128, `Circuito.app` at (326, 205), `Applications` at (574, 205), and the background. Goes to `.DS_Store` in the image. |

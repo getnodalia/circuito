@@ -41,8 +41,8 @@
     <keyword>electronics</keyword>
   </keywords>
   <branding>
-    <color type="primary" scheme_preference="light">#f2d77a</color>
-    <color type="primary" scheme_preference="dark">#7a5c00</color>
+    <color type="primary" scheme_preference="light">#f3c9b9</color>
+    <color type="primary" scheme_preference="dark">#7a3a26</color>
   </branding>
   <requires>
     <display_length compare="ge">760</display_length>

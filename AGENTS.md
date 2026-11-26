@@ -12,7 +12,7 @@ Engineering rules for every Nodalia repository: [getnodalia/foundation](https://
 
 Circuito is Nodalia's electronics, electrical and industrial-automation application: schematic capture, circuit simulation, PCB design and manufacturing outputs, written in Rust with engines of its own. It belongs to the Engineering suite with Forja, Torno, Vortia and Ábaco. Written in **Rust only**: the interface is egui/eframe with `nodalia-theme`, and there is no
 Electron, Chromium or web view. The product name is **Circuito** in prose and in the interface; machine
-names are `circuito`. App ID `dev.danielmiguelt.Circuito`, accent `#C99A06`, licence `MIT OR Apache-2.0`. Circuito is its
+names are `circuito`. App ID `dev.danielmiguelt.Circuito`, accent `#C06A4F`, licence `MIT OR Apache-2.0`. Circuito is its
 own app: never describe it as a fork or a port. `README.md` says what runs today and `ROADMAP.md`
 what does not exist yet; planned features are never described as existing.
 
@@ -93,8 +93,9 @@ a tag by hand. `release-auto.yml` tags the merge through Foundation's `release-t
 `release-linux.yml` (AppImage, .deb, .rpm, .tar.gz), `release-macos.yml` (DMG with its own window,
 ad hoc signed) and `release-windows.yml` (MSI and portable zip) build and attach the packages with
 the scripts in `packaging/`, named `circuito-<version>-<os>-<arch>` as the Nodalia Launcher expects;
-Foundation's `release-publish` publishes. The app icon files in `assets/app-icon/` come from
-`packaging/icons.sh`; replace the icon there, not in each installer. What is still missing is in
+Foundation's `release-publish` publishes. The app icon is the artwork in `assets/icons/` (Linux sizes included); the
+`.ico` and `.icns` in `assets/app-icon/` come from it through `packaging/icons.sh`, so replace the
+artwork there and rerun the script, not each installer. What is still missing is in
 `NODALIA_MIGRATION.md`.
 
 ## Pull requests

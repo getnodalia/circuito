@@ -159,10 +159,10 @@ impl App {
     pub fn icon(&mut self, ctx: &egui::Context) -> egui::TextureId {
         self.icon
             .get_or_insert_with(|| {
-                let image = egui::ColorImage::from_rgba_unmultiplied(
-                    [128, 128],
-                    &circuito_app::icon::rgba(128),
-                );
+                // A missing icon draws as one transparent pixel rather than failing.
+                let (w, h, rgba) = circuito_app::icon::rgba(circuito_app::icon::SMALL)
+                    .unwrap_or_else(|| (1, 1, vec![0; 4]));
+                let image = egui::ColorImage::from_rgba_unmultiplied([w, h], &rgba);
                 ctx.load_texture("circuito-icon", image, egui::TextureOptions::LINEAR)
             })
             .id()
