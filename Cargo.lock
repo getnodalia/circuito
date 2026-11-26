@@ -612,7 +612,7 @@ dependencies = [
 
 [[package]]
 name = "circuito-app"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "circuito-core",
  "circuito-erc",
@@ -636,7 +636,7 @@ dependencies = [
 
 [[package]]
 name = "circuito-cli"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "circuito-core",
  "circuito-erc",
@@ -648,7 +648,7 @@ dependencies = [
 
 [[package]]
 name = "circuito-core"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "proptest",
  "serde",
@@ -658,7 +658,7 @@ dependencies = [
 
 [[package]]
 name = "circuito-erc"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "circuito-core",
  "serde",
@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "circuito-pcb"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "proptest",
  "serde",
@@ -677,7 +677,7 @@ dependencies = [
 
 [[package]]
 name = "circuito-sim"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "circuito-core",
  "circuito-spice",
@@ -688,7 +688,7 @@ dependencies = [
 
 [[package]]
 name = "circuito-spice"
-version = "0.1.0"
+version = "0.2.0-dev"
 dependencies = [
  "circuito-core",
  "proptest",
