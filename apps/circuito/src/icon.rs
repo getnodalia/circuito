@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! The app icon: Gustav Kirchhoff, whose circuit laws every simulator here rests on, from a
 //! 19th-century photograph (Smithsonian Libraries, public domain), in black and white on
-//! Circuito's gold, `#C99A06`. The PNGs are `assets/icons/hicolor/*/apps/`; the same pixels are
+//! Circuito's rose copper, `#C06A4F`. The PNGs are `assets/icons/hicolor/*/apps/`; the same pixels are
 //! the window icon, the logo in the title bar and the mark on the About page.
 
 /// The logo's size in pixels.

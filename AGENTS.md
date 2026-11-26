@@ -12,7 +12,7 @@ Engineering rules for every Nodalia repository: [getnodalia/foundation](https://
 
 Circuito is Nodalia's electronics, electrical and industrial-automation application: schematic capture, circuit simulation, PCB design and manufacturing outputs, written in Rust with engines of its own. It belongs to the Engineering suite with Forja, Torno, Vortia and Ábaco. Written in **Rust only**: the interface is egui/eframe with `nodalia-theme`, and there is no
 Electron, Chromium or web view. The product name is **Circuito** in prose and in the interface; machine
-names are `circuito`. App ID `dev.danielmiguelt.Circuito`, accent `#C99A06`, licence `MIT OR Apache-2.0`. Circuito is its
+names are `circuito`. App ID `dev.danielmiguelt.Circuito`, accent `#C06A4F`, licence `MIT OR Apache-2.0`. Circuito is its
 own app: never describe it as a fork or a port. `README.md` says what runs today and `ROADMAP.md`
 what does not exist yet; planned features are never described as existing.
 
