@@ -29,9 +29,10 @@ fn decode(bytes: &[u8]) -> Option<(usize, usize, Vec<u8>)> {
             .chunks_exact(3)
             .flat_map(|p| [p[0], p[1], p[2], 255])
             .collect(),
-        png::ColorType::GrayscaleAlpha => {
-            buf.chunks_exact(2).flat_map(|p| [p[0], p[0], p[0], p[1]]).collect()
-        }
+        png::ColorType::GrayscaleAlpha => buf
+            .chunks_exact(2)
+            .flat_map(|p| [p[0], p[0], p[0], p[1]])
+            .collect(),
         png::ColorType::Grayscale => buf.iter().flat_map(|g| [*g, *g, *g, 255]).collect(),
         png::ColorType::Indexed => return None,
     };
