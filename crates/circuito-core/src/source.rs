@@ -483,7 +483,7 @@ impl Source {
                         return Err(SourceError::Invalid("PWL has too many points".into()));
                     }
                     src.wave = Some(Waveform::Pwl {
-                        points: n.chunks_exact(2).map(|c| (c[0], c[1])).collect(),
+                        points: n.as_chunks::<2>().0.iter().map(|&[t, v]| (t, v)).collect(),
                     });
                 }
                 "EXP" => {
