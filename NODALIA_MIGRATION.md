@@ -28,9 +28,13 @@ None.
 ## NDL work pending
 
 - The accent lands in nodalia-design first; until then the app runs on the default accent.
-- The app icon is a portrait of a historical figure (see `ATTRIBUTION.md` when it lands).
+- The app icon is a portrait of a historical figure. Until it lands the app draws a placeholder
+  mark in code (`apps/circuito/src/icon.rs`), recorded in `ATTRIBUTION.md`.
+- Not verified yet: the Linux global menu on a real shell, NDL window controls on macOS and
+  Windows, Wayland. The release workflows are still missing.
 
 ## Missing tests
 
 - The views are checked by hand with screenshots; a headless render test of the main screens
-  would catch layout regressions.
+  would catch layout regressions. The app's view-model (documents, findings, plots, settings,
+  i18n tables, command and menu catalogue) is covered by unit tests.

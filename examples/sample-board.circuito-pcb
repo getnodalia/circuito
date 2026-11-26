@@ -1,0 +1,397 @@
+{
+  "format": "circuito-pcb",
+  "format_version": 1,
+  "board": {
+    "name": "rc-lowpass",
+    "copper_layers": 2,
+    "stackup": {
+      "layers": [
+        {
+          "kind": "copper",
+          "layer": "F.Cu",
+          "thickness": 34800,
+          "weight_milli_oz": 1000
+        },
+        {
+          "kind": "dielectric",
+          "thickness": 1530400,
+          "epsilon_r_milli": 4500,
+          "material": "FR-4"
+        },
+        {
+          "kind": "copper",
+          "layer": "B.Cu",
+          "thickness": 34800,
+          "weight_milli_oz": 1000
+        }
+      ]
+    },
+    "outline": {
+      "outer": [
+        {
+          "kind": "line",
+          "start": [
+            0,
+            0
+          ],
+          "end": [
+            30000000,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "start": [
+            30000000,
+            0
+          ],
+          "end": [
+            30000000,
+            20000000
+          ]
+        },
+        {
+          "kind": "line",
+          "start": [
+            30000000,
+            20000000
+          ],
+          "end": [
+            0,
+            20000000
+          ]
+        },
+        {
+          "kind": "line",
+          "start": [
+            0,
+            20000000
+          ],
+          "end": [
+            0,
+            0
+          ]
+        }
+      ],
+      "cutouts": []
+    },
+    "nets": [
+      {
+        "id": 1,
+        "name": "VCC",
+        "class": "Default"
+      },
+      {
+        "id": 2,
+        "name": "GND",
+        "class": "Default"
+      },
+      {
+        "id": 3,
+        "name": "SIG",
+        "class": "Default"
+      }
+    ],
+    "net_classes": [],
+    "footprints": [
+      {
+        "id": 7,
+        "reference": "J1",
+        "value": "Input",
+        "package": "PinHeader_1x02",
+        "position": [
+          5000000,
+          10000000
+        ],
+        "rotation": 0,
+        "side": "front",
+        "pads": [
+          {
+            "id": 1,
+            "number": "1",
+            "kind": "through_hole",
+            "shape": {
+              "kind": "circle"
+            },
+            "position": [
+              0,
+              -1270000
+            ],
+            "rotation": 0,
+            "size": {
+              "w": 1800000,
+              "h": 1800000
+            },
+            "drill": {
+              "diameter": 1000000,
+              "slot_length": null
+            },
+            "net": 1,
+            "mask": true,
+            "paste": false,
+            "mask_margin": null,
+            "paste_margin": null
+          },
+          {
+            "id": 2,
+            "number": "2",
+            "kind": "through_hole",
+            "shape": {
+              "kind": "circle"
+            },
+            "position": [
+              0,
+              1270000
+            ],
+            "rotation": 0,
+            "size": {
+              "w": 1800000,
+              "h": 1800000
+            },
+            "drill": {
+              "diameter": 1000000,
+              "slot_length": null
+            },
+            "net": 2,
+            "mask": true,
+            "paste": false,
+            "mask_margin": null,
+            "paste_margin": null
+          }
+        ],
+        "courtyard": null,
+        "graphics": [],
+        "texts": [],
+        "exclude_from_bom": false,
+        "exclude_from_pos": false
+      },
+      {
+        "id": 8,
+        "reference": "R1",
+        "value": "10k",
+        "package": "R_0603",
+        "position": [
+          14000000,
+          8730000
+        ],
+        "rotation": 0,
+        "side": "front",
+        "pads": [
+          {
+            "id": 3,
+            "number": "1",
+            "kind": "smd",
+            "shape": {
+              "kind": "rect"
+            },
+            "position": [
+              -1000000,
+              0
+            ],
+            "rotation": 0,
+            "size": {
+              "w": 900000,
+              "h": 1000000
+            },
+            "drill": null,
+            "net": 1,
+            "mask": true,
+            "paste": true,
+            "mask_margin": null,
+            "paste_margin": null
+          },
+          {
+            "id": 4,
+            "number": "2",
+            "kind": "smd",
+            "shape": {
+              "kind": "rect"
+            },
+            "position": [
+              1000000,
+              0
+            ],
+            "rotation": 0,
+            "size": {
+              "w": 900000,
+              "h": 1000000
+            },
+            "drill": null,
+            "net": 3,
+            "mask": true,
+            "paste": true,
+            "mask_margin": null,
+            "paste_margin": null
+          }
+        ],
+        "courtyard": null,
+        "graphics": [],
+        "texts": [],
+        "exclude_from_bom": false,
+        "exclude_from_pos": false
+      },
+      {
+        "id": 9,
+        "reference": "C1",
+        "value": "100n",
+        "package": "C_0603",
+        "position": [
+          22000000,
+          8730000
+        ],
+        "rotation": 0,
+        "side": "front",
+        "pads": [
+          {
+            "id": 5,
+            "number": "1",
+            "kind": "smd",
+            "shape": {
+              "kind": "rect"
+            },
+            "position": [
+              -1000000,
+              0
+            ],
+            "rotation": 0,
+            "size": {
+              "w": 900000,
+              "h": 1000000
+            },
+            "drill": null,
+            "net": 3,
+            "mask": true,
+            "paste": true,
+            "mask_margin": null,
+            "paste_margin": null
+          },
+          {
+            "id": 6,
+            "number": "2",
+            "kind": "smd",
+            "shape": {
+              "kind": "rect"
+            },
+            "position": [
+              1000000,
+              0
+            ],
+            "rotation": 0,
+            "size": {
+              "w": 900000,
+              "h": 1000000
+            },
+            "drill": null,
+            "net": 2,
+            "mask": true,
+            "paste": true,
+            "mask_margin": null,
+            "paste_margin": null
+          }
+        ],
+        "courtyard": null,
+        "graphics": [],
+        "texts": [],
+        "exclude_from_bom": false,
+        "exclude_from_pos": false
+      }
+    ],
+    "tracks": [
+      {
+        "id": 10,
+        "net": 1,
+        "layer": "F.Cu",
+        "width": 300000,
+        "geometry": "segment",
+        "start": [
+          5000000,
+          8730000
+        ],
+        "end": [
+          13000000,
+          8730000
+        ]
+      },
+      {
+        "id": 11,
+        "net": 3,
+        "layer": "F.Cu",
+        "width": 250000,
+        "geometry": "segment",
+        "start": [
+          15000000,
+          8730000
+        ],
+        "end": [
+          21000000,
+          8730000
+        ]
+      },
+      {
+        "id": 12,
+        "net": 2,
+        "layer": "F.Cu",
+        "width": 300000,
+        "geometry": "segment",
+        "start": [
+          23000000,
+          8730000
+        ],
+        "end": [
+          23000000,
+          13000000
+        ]
+      },
+      {
+        "id": 14,
+        "net": 2,
+        "layer": "B.Cu",
+        "width": 300000,
+        "geometry": "segment",
+        "start": [
+          23000000,
+          13000000
+        ],
+        "end": [
+          5000000,
+          13000000
+        ]
+      },
+      {
+        "id": 15,
+        "net": 2,
+        "layer": "B.Cu",
+        "width": 300000,
+        "geometry": "segment",
+        "start": [
+          5000000,
+          13000000
+        ],
+        "end": [
+          5000000,
+          11270000
+        ]
+      }
+    ],
+    "vias": [
+      {
+        "id": 13,
+        "net": 2,
+        "position": [
+          23000000,
+          13000000
+        ],
+        "diameter": 800000,
+        "drill": 400000,
+        "kind": "through",
+        "from": "F.Cu",
+        "to": "B.Cu",
+        "tented": true
+      }
+    ],
+    "zones": [],
+    "keepouts": [],
+    "graphics": [],
+    "texts": []
+  }
+}

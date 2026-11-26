@@ -410,7 +410,7 @@ fn hostile_inputs_never_crash() {
         "t\n".repeat(1000).into_bytes(),
     ];
     for s in &samples {
-        for cmd in ["sim", "erc", "netlist"] {
+        for cmd in ["sim", "erc", "netlist", "drc"] {
             let o = run_stdin(&[cmd, "-"], s);
             let c = code(&o);
             assert!(
@@ -420,4 +420,226 @@ fn hostile_inputs_never_crash() {
             );
         }
     }
+}
+
+// ---- drc and gerber -------------------------------------------------------------------------
+
+fn sample_board_path() -> String {
+    example("sample-board.circuito-pcb")
+}
+
+/// The sample board with a VCC track laid 0.02 mm from the SIG track.
+fn board_with_planted_violation(name: &str) -> String {
+    use circuito_pcb::board::{Board, NetId, Track, TrackGeom};
+    use circuito_pcb::geom::Point;
+    use circuito_pcb::layer::Layer;
+    let mut board =
+        Board::from_json(&std::fs::read_to_string(sample_board_path()).unwrap()).unwrap();
+    let id = board.next_id();
+    board.tracks.push(Track {
+        id,
+        net: Some(NetId(1)),
+        layer: Layer::FCu,
+        width: 250_000,
+        geom: TrackGeom::Segment {
+            start: Point::new(16_000_000, 9_000_000),
+            end: Point::new(20_000_000, 9_000_000),
+        },
+    });
+    let path = scratch(name);
+    std::fs::write(&path, board.to_json().unwrap()).unwrap();
+    path.to_string_lossy().into_owned()
+}
+
+#[test]
+fn drc_passes_the_sample_board() {
+    let o = run(&["drc", &sample_board_path()]);
+    assert_eq!(code(&o), 0, "{}", errtext(&o));
+    assert!(out(&o).contains("0 error(s), 0 warning(s) against generic-2layer-6-6"));
+}
+
+#[test]
+fn drc_json_of_a_clean_board_is_well_formed() {
+    let o = run(&[
+        "drc",
+        &sample_board_path(),
+        "--json",
+        "--profile",
+        "generic-2layer",
+    ]);
+    assert_eq!(code(&o), 0, "{}", errtext(&o));
+    let v: serde_json::Value = serde_json::from_str(&out(&o)).unwrap();
+    assert_eq!(v["profile"], "generic-2layer-6-6");
+    assert_eq!(v["errors"], 0);
+    assert!(v["violations"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn drc_finds_a_planted_clearance_violation() {
+    let file = board_with_planted_violation("planted.circuito-pcb");
+    let o = run(&["drc", &file]);
+    assert_eq!(code(&o), 1, "{}", errtext(&o));
+    let text = out(&o);
+    assert!(text.contains("error[clearance.track_track] F.Cu"), "{text}");
+    assert!(text.contains("against generic-2layer-6-6"), "{text}");
+
+    let o = run(&["drc", &file, "--json"]);
+    assert_eq!(code(&o), 1);
+    let v: serde_json::Value = serde_json::from_str(&out(&o)).unwrap();
+    assert!(v["errors"].as_u64().unwrap() >= 1);
+    assert!(v["violations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|x| x["code"] == "clearance.track_track" && x["severity"] == "error"));
+}
+
+#[test]
+fn drc_reports_a_board_the_profile_cannot_make() {
+    // A four-layer board against the two-layer profile.
+    use circuito_pcb::board::Board;
+    let mut board = Board::new("four", 4).unwrap();
+    board.outline = Some(circuito_pcb::board::Outline::rectangle(
+        0, 0, 10_000_000, 10_000_000,
+    ));
+    let path = scratch("four.circuito-pcb");
+    std::fs::write(&path, board.to_json().unwrap()).unwrap();
+    let file = path.to_string_lossy().into_owned();
+    let o = run(&["drc", &file, "--profile", "generic-2layer"]);
+    assert_eq!(code(&o), 1);
+    assert!(out(&o).contains("profile.layers"), "{}", out(&o));
+    // The default picks the four-layer profile for it.
+    let o = run(&["drc", &file]);
+    assert_eq!(code(&o), 0, "{}", out(&o));
+    assert!(out(&o).contains("generic-4layer-5-5"));
+}
+
+#[test]
+fn drc_rejects_bad_input_with_a_message() {
+    let o = run(&["drc", &sample_board_path(), "--profile", "nope"]);
+    assert_eq!(code(&o), 1);
+    assert!(
+        errtext(&o).contains("unknown profile `nope`"),
+        "{}",
+        errtext(&o)
+    );
+    assert!(errtext(&o).contains("generic-2layer-6-6"));
+
+    let o = run(&["drc", "/nonexistent/board.circuito-pcb"]);
+    assert_eq!(code(&o), 1);
+    assert!(errtext(&o).contains("cannot open"));
+
+    let o = run_stdin(&["drc", "-"], b"{ not a board");
+    assert_eq!(code(&o), 1);
+    assert!(!errtext(&o).is_empty());
+
+    let o = run(&["drc"]);
+    assert_eq!(code(&o), 2);
+}
+
+#[test]
+fn drc_reads_a_board_from_standard_input() {
+    let text = std::fs::read(sample_board_path()).unwrap();
+    let o = run_stdin(&["drc", "-"], &text);
+    assert_eq!(code(&o), 0, "{}", errtext(&o));
+}
+
+#[test]
+fn gerber_writes_every_manufacturing_file() {
+    let dir = scratch("gerber-out");
+    let _ = std::fs::remove_dir_all(&dir);
+    let o = run(&[
+        "gerber",
+        &sample_board_path(),
+        "--out",
+        &dir.to_string_lossy(),
+    ]);
+    assert_eq!(code(&o), 0, "{}", errtext(&o));
+    let mut names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    for want in [
+        "rc-lowpass-F_Cu.gbr",
+        "rc-lowpass-B_Cu.gbr",
+        "rc-lowpass-F_Mask.gbr",
+        "rc-lowpass-Edge_Cuts.gbr",
+        "rc-lowpass-PTH.drl",
+        "rc-lowpass-pos.csv",
+        "rc-lowpass-bom.csv",
+    ] {
+        assert!(
+            names.iter().any(|n| n == want),
+            "{want} missing in {names:?}"
+        );
+    }
+    assert!(
+        !names.iter().any(|n| n.contains("tmp-circuito")),
+        "a temporary file was left: {names:?}"
+    );
+    assert!(out(&o).contains(&format!("{} file(s) written", names.len())));
+
+    // The files say what the board says: our own reader accepts them.
+    let copper = std::fs::read_to_string(dir.join("rc-lowpass-F_Cu.gbr")).unwrap();
+    assert!(
+        copper.starts_with("%TF.") || copper.contains("%FSLAX46Y46*%"),
+        "{copper:.200}"
+    );
+    assert!(copper.contains("M02*"));
+    let image = circuito_pcb::gerber::read_gerber(&copper).unwrap();
+    assert!(!image.objects.is_empty());
+    let drill = std::fs::read_to_string(dir.join("rc-lowpass-PTH.drl")).unwrap();
+    assert!(circuito_pcb::excellon::read_excellon(&drill).is_ok());
+    let bom = std::fs::read_to_string(dir.join("rc-lowpass-bom.csv")).unwrap();
+    assert!(
+        bom.contains("R1") && bom.contains("C1") && bom.contains("J1"),
+        "{bom}"
+    );
+    let pos = std::fs::read_to_string(dir.join("rc-lowpass-pos.csv")).unwrap();
+    assert!(pos.starts_with("Ref,Value,Package,PosX,PosY,Rot,Side"));
+    assert!(
+        pos.contains("R1,10k,R_0603,14.000000,8.730000,0.000,top"),
+        "{pos}"
+    );
+}
+
+#[test]
+fn gerber_is_reproducible() {
+    let (a, b) = (scratch("gerber-a"), scratch("gerber-b"));
+    for d in [&a, &b] {
+        let _ = std::fs::remove_dir_all(d);
+        let o = run(&[
+            "gerber",
+            &sample_board_path(),
+            "--out",
+            &d.to_string_lossy(),
+        ]);
+        assert_eq!(code(&o), 0);
+    }
+    for entry in std::fs::read_dir(&a).unwrap() {
+        let name = entry.unwrap().file_name();
+        assert_eq!(
+            std::fs::read(a.join(&name)).unwrap(),
+            std::fs::read(b.join(&name)).unwrap(),
+            "{name:?} differs between runs"
+        );
+    }
+}
+
+#[test]
+fn gerber_rejects_bad_input_and_writes_nothing() {
+    let dir = scratch("gerber-bad");
+    let _ = std::fs::remove_dir_all(&dir);
+    let o = run_stdin(&["gerber", "-", "--out", &dir.to_string_lossy()], b"{}");
+    assert_eq!(code(&o), 1);
+    assert!(!errtext(&o).is_empty());
+    assert!(
+        !dir.exists(),
+        "no directory should be created for a bad board"
+    );
+
+    let o = run(&["gerber", &sample_board_path()]);
+    assert_eq!(code(&o), 2);
+    assert!(errtext(&o).contains("--out"));
 }

@@ -1,0 +1,45 @@
+[package]
+name = "circuito-app"
+description = "Circuito's desktop app, drawn in the Nodalia Design Language."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+name = "circuito_app"
+path = "src/lib.rs"
+
+# Not `circuito`: that name is the headless command line.
+[[bin]]
+name = "circuito-app"
+path = "src/main.rs"
+
+[dependencies]
+circuito-core = { path = "../../crates/circuito-core" }
+circuito-erc = { path = "../../crates/circuito-erc" }
+circuito-spice = { path = "../../crates/circuito-spice" }
+circuito-sim = { path = "../../crates/circuito-sim" }
+eframe.workspace = true
+egui.workspace = true
+nodalia-theme.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+directories = "6"
+pollster = "0.4"
+rfd = "0.17"
+sys-locale = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = "=5.19.0"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

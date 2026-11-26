@@ -11,6 +11,7 @@ authors.workspace = true
 [dependencies]
 circuito-core = { path = "../../crates/circuito-core" }
 circuito-erc = { path = "../../crates/circuito-erc" }
+circuito-pcb = { path = "../../crates/circuito-pcb" }
 circuito-spice = { path = "../../crates/circuito-spice" }
 circuito-sim = { path = "../../crates/circuito-sim" }
 serde_json.workspace = true

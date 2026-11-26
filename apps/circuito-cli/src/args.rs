@@ -37,6 +37,15 @@ pub enum Command {
         file: String,
         output: Option<String>,
     },
+    /// `drc`.
+    Drc {
+        file: String,
+        profile: Option<String>,
+        json: bool,
+        deny_warnings: bool,
+    },
+    /// `gerber`.
+    Gerber { file: String, out_dir: String },
 }
 
 /// What was wrong with the command line.
@@ -62,8 +71,10 @@ pub fn parse(args: &[String]) -> Result<Command, UsageError> {
         "sim" => parse_sim(rest),
         "erc" => parse_erc(rest),
         "netlist" => parse_netlist(rest),
+        "drc" => parse_drc(rest),
+        "gerber" => parse_gerber(rest),
         other => usage(format!(
-            "unknown command `{other}` (commands: sim, erc, netlist; try `circuito --help`)"
+            "unknown command `{other}` (commands: sim, erc, netlist, drc, gerber; try `circuito --help`)"
         )),
     }
 }
@@ -195,6 +206,58 @@ fn parse_netlist(args: &[String]) -> Result<Command, UsageError> {
     Ok(Command::Netlist { file, output })
 }
 
+fn parse_drc(args: &[String]) -> Result<Command, UsageError> {
+    let mut c = Cursor { args, i: 0 };
+    let (mut file, mut profile, mut json, mut deny) = (None, None, false, false);
+    while let Some(a) = c.next() {
+        let (name, inline) = split_eq(a);
+        match name {
+            "--profile" | "-p" => {
+                let v = c.value(name, inline)?;
+                set_once(&mut profile, "--profile", v.to_string())?;
+            }
+            "--json" => json = true,
+            "--deny-warnings" => deny = true,
+            _ if name.starts_with('-') && name != "-" => {
+                return usage(format!("unknown option `{name}` for `drc`"));
+            }
+            _ => set_once(&mut file, "the input file", a.to_string())?,
+        }
+    }
+    let file = file
+        .ok_or_else(|| UsageError("`drc` needs a .circuito-pcb file (or `-` for stdin)".into()))?;
+    Ok(Command::Drc {
+        file,
+        profile,
+        json,
+        deny_warnings: deny,
+    })
+}
+
+fn parse_gerber(args: &[String]) -> Result<Command, UsageError> {
+    let mut c = Cursor { args, i: 0 };
+    let (mut file, mut out_dir) = (None, None);
+    while let Some(a) = c.next() {
+        let (name, inline) = split_eq(a);
+        match name {
+            "--out" | "-o" => {
+                let v = c.value(name, inline)?;
+                set_once(&mut out_dir, "--out", v.to_string())?;
+            }
+            _ if name.starts_with('-') && name != "-" => {
+                return usage(format!("unknown option `{name}` for `gerber`"));
+            }
+            _ => set_once(&mut file, "the input file", a.to_string())?,
+        }
+    }
+    let file = file.ok_or_else(|| {
+        UsageError("`gerber` needs a .circuito-pcb file (or `-` for stdin)".into())
+    })?;
+    let out_dir = out_dir
+        .ok_or_else(|| UsageError("`gerber` needs --out <directory> for the files".into()))?;
+    Ok(Command::Gerber { file, out_dir })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,6 +297,26 @@ mod tests {
     }
 
     #[test]
+    fn parses_drc_and_gerber() {
+        assert_eq!(
+            p("drc b.json --profile generic-4layer --json --deny-warnings").unwrap(),
+            Command::Drc {
+                file: "b.json".into(),
+                profile: Some("generic-4layer".into()),
+                json: true,
+                deny_warnings: true
+            }
+        );
+        assert_eq!(
+            p("gerber b.json --out=dir").unwrap(),
+            Command::Gerber {
+                file: "b.json".into(),
+                out_dir: "dir".into()
+            }
+        );
+    }
+
+    #[test]
     fn rejects_bad_command_lines_with_a_reason() {
         for bad in [
             "frobnicate",
@@ -249,6 +332,12 @@ mod tests {
             "erc a --nope",
             "netlist",
             "netlist a -o x -o y",
+            "drc",
+            "drc a --profile",
+            "drc a --nope",
+            "gerber a",
+            "gerber --out d",
+            "gerber a --out d --out e",
         ] {
             let e = p(bad).unwrap_err();
             assert!(!e.0.is_empty(), "{bad}");
