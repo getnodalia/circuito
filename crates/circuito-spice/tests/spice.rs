@@ -245,9 +245,7 @@ fn truncations_and_mutations_never_panic() {
     }
     let bytes = FULL.as_bytes();
     for i in (0..bytes.len()).step_by(3) {
-        for repl in [
-            b'(', b')', b'{', b'}', b'=', b'+', b'*', b'.', b'0', b'\\', b'e', b'-',
-        ] {
+        for repl in *b"(){}=+*.0\\e-" {
             let mut m = bytes.to_vec();
             m[i] = repl;
             if let Ok(s) = String::from_utf8(m) {
