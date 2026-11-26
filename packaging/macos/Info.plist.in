@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: packaging/macos/package.sh substitutes @VERSION@ (full, e.g. 0.2.0-rc.1),
+     @SHORT_VERSION@ (numeric X.Y.Z) and @BUILD_SHA@. -->
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <!-- UI translations are embedded in Rust; declare them for AppKit's system dialogs (open and
+       save panels). Keep in sync with the interface languages (apps/circuito/src/i18n.rs). -->
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>es</string>
+  </array>
+  <key>CFBundleDisplayName</key>
+  <string>Circuito</string>
+  <key>CFBundleName</key>
+  <string>Circuito</string>
+  <key>CFBundleExecutable</key>
+  <string>Circuito</string>
+  <key>CFBundleIdentifier</key>
+  <string>dev.danielmiguelt.Circuito</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleSignature</key>
+  <string>????</string>
+  <key>CFBundleShortVersionString</key>
+  <string>@SHORT_VERSION@</string>
+  <key>CFBundleVersion</key>
+  <string>@SHORT_VERSION@</string>
+  <key>CircuitoVersion</key>
+  <string>@VERSION@</string>
+  <key>CircuitoBuildCommit</key>
+  <string>@BUILD_SHA@</string>
+  <key>CFBundleIconFile</key>
+  <string>Circuito</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.developer-tools</string>
+  <!-- Must match MACOSX_DEPLOYMENT_TARGET in package.sh. -->
+  <key>LSMinimumSystemVersion</key>
+  <string>11.0</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+  <key>NSRequiresAquaSystemAppearance</key>
+  <false/>
+  <key>NSHumanReadableCopyright</key>
+  <string>Copyright © the Circuito authors. MIT OR Apache-2.0.</string>
+
+  <!-- Circuito's schematic format. The icon and the type are what Finder shows; whether a
+       double-click also opens the file in a running app depends on the app handling the open
+       event, which this version of the app does not do yet (it opens files given on its command
+       line and dropped on its window). -->
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>Circuito Schematic</string>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>LSHandlerRank</key>
+      <string>Owner</string>
+      <key>CFBundleTypeIconFile</key>
+      <string>Circuito</string>
+      <key>LSItemContentTypes</key>
+      <array><string>dev.danielmiguelt.Circuito.schematic</string></array>
+    </dict>
+  </array>
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>dev.danielmiguelt.Circuito.schematic</string>
+      <key>UTTypeDescription</key>
+      <string>Circuito Schematic</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.json</string>
+      </array>
+      <key>UTTypeIconFile</key>
+      <string>Circuito</string>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array><string>circuito</string></array>
+        <key>public.mime-type</key>
+        <array><string>application/x-circuito</string></array>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>

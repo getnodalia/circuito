@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Circuito" Manufacturer="Nodalia" Version="$(var.Version)" UpgradeCode="3CF35081-9491-460A-B3AD-C4C161909A58" Scope="perUserOrMachine" Compressed="yes" Language="1033">
+    <SummaryInformation Description="Circuito electronics: open, check and simulate circuits" Manufacturer="Nodalia" />
+    <?include $(sys.SOURCEFILEDIR)install-policy.wxi?>
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Circuito is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="CircuitoIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="CircuitoIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://getnodalia.com/circuito" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://getnodalia.com/circuito" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/getnodalia/circuito/issues" />
+
+    <!-- Shared native setup UI (installer-ui.wxs), including install/uninstall completion. -->
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="CraftSuiteFolder" Name="Nodalia">
+        <Directory Id="INSTALLFOLDER" Name="Circuito" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="Circuito" Level="1">
+      <ComponentGroupRef Id="CircuitoFiles" />
+      <ComponentGroupRef Id="CraftInstallerSettings" />
+    </Feature>
+    <!-- Shared full UI; app installation policy remains below. -->
+    <UIRef Id="CraftInstallerUI" />
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="CircuitoFiles" Directory="INSTALLFOLDER">
+      <Component Id="CircuitoApp" Guid="7CB4EC52-FC61-4ECD-B3B3-0BDE6E226AD3">
+        <!-- circuito-app.exe is the desktop app; circuito.exe below is the headless command. -->
+        <File Id="CircuitoExe" Source="$(var.BinDir)\circuito-app.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="Circuito" Description="Circuito electronics: open, check and simulate circuits" WorkingDirectory="INSTALLFOLDER" Advertise="yes" Icon="CircuitoIcon.ico" IconIndex="0" />
+        </File>
+        <!-- A ProgId icon must be a File: the package icon is installed beside the exe for it. -->
+        <File Id="CircuitoIconFile" Name="circuito.ico" Source="$(var.IconPath)" />
+
+        <!-- .circuito: Circuito's own schematic format; Circuito is its default app. The icon is the
+             .ico of the package: circuito-app.exe carries no icon resource of its own yet. -->
+        <ProgId Id="Circuito.Document" Description="Circuito Schematic" Icon="CircuitoIconFile" IconIndex="0">
+          <Extension Id="circuito" ContentType="application/x-circuito">
+            <Verb Id="open" Command="Open" TargetFile="CircuitoExe" Argument="&quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+        <!-- SPICE decks (.cir): offered under "Open with", never forced as the default. -->
+        <ProgId Id="Circuito.Spice" Description="SPICE Netlist" Icon="CircuitoIconFile" IconIndex="0" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Circuito.Spice\shell\open\command" Value="&quot;[#CircuitoExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\.cir\OpenWithProgids" Name="Circuito.Spice" Value="" Type="string" />
+
+        <!-- "Open with" app list and the Run dialog (Win+R "circuito-app"). -->
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\circuito-app.exe" Name="FriendlyAppName" Value="Circuito" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\circuito-app.exe\shell\open\command" Value="&quot;[#CircuitoExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\circuito-app.exe\SupportedTypes" Name=".circuito" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\circuito-app.exe\SupportedTypes" Name=".cir" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\circuito-app.exe" Value="[#CircuitoExe]" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Circuito" Name="InstallDir" Value="[INSTALLFOLDER]" Type="string" />
+      </Component>
+
+      <Component Id="CircuitoCli">
+        <File Id="CircuitoCliExe" Source="$(var.BinDir)\circuito.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

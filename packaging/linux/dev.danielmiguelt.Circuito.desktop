@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Circuito
+GenericName=Electronics
+Comment=Open, check and simulate circuits
+Exec=circuito-app %F
+TryExec=circuito-app
+Icon=dev.danielmiguelt.Circuito
+Terminal=false
+StartupNotify=true
+StartupWMClass=dev.danielmiguelt.Circuito
+Categories=Science;Engineering;Electronics;
+MimeType=application/x-circuito;
+Keywords=circuit;schematic;spice;simulation;electronics;pcb;gerber;
