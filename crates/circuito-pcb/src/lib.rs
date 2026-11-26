@@ -10,6 +10,7 @@
 )]
 
 pub mod artwork;
+pub mod assembly;
 pub mod board;
 pub mod drc;
 pub mod error;
@@ -19,6 +20,7 @@ pub mod geom;
 pub mod gerber;
 pub mod io;
 pub mod layer;
+pub mod route;
 pub mod stackup;
 pub mod transform;
 pub mod units;
