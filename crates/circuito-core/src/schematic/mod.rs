@@ -10,9 +10,10 @@
 //! `MAX_*` constants), refuses any other format version with a message that says which version was
 //! found, and never panics on malformed input.
 
+pub mod builder;
 mod nets;
 
-pub use nets::{resolve_nets, LabelRef, Net, NetResolution, NetWarning, PortRef};
+pub use nets::{resolve_nets, LabelRef, Net, NetResolution, NetWarning, PinRef, PortRef};
 
 use crate::netlist::{Analysis, Model};
 use serde::{Deserialize, Serialize};
