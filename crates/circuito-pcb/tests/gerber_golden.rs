@@ -56,7 +56,14 @@ fn golden_dir() -> PathBuf {
         .join("golden")
 }
 
+/// The generator's own version is written into every file; the golden files hold a placeholder
+/// instead, so a release does not break them. Every other byte is still compared exactly.
+fn neutral(content: &str) -> String {
+    content.replace(env!("CARGO_PKG_VERSION"), "<version>")
+}
+
 fn check(name: &str, content: &str) {
+    let content = neutral(content);
     let path = golden_dir().join(name);
     if std::env::var_os("CIRCUITO_BLESS").is_some() {
         std::fs::create_dir_all(golden_dir()).unwrap();

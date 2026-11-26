@@ -1,5 +1,5 @@
-G04 Created by Nodalia Circuito 0.1.0-dev*
-%TF.GenerationSoftware,Nodalia,Circuito,0.1.0-dev*%
+G04 Created by Nodalia Circuito <version>*
+%TF.GenerationSoftware,Nodalia,Circuito,<version>*%
 %TF.SameCoordinates,Original*%
 %TF.FileFunction,Soldermask,Bot*%
 %TF.FilePolarity,Negative*%
