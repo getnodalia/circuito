@@ -1,0 +1,9 @@
+Inverting amplifier, gain -R2/R1 = -10, finite-gain op-amp with 75 ohm output resistance
+V1 in 0 DC 0.1 AC 1
+R1 in inv 1k
+R2 inv out 10k
+U1 0 inv out OA
+.model OA OPAMP(GAIN=1e5 ROUT=75 VMAX=12 VMIN=-12)
+.op
+.dc V1 -1.5 1.5 0.25
+.end

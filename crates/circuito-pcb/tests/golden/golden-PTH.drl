@@ -1,0 +1,20 @@
+M48
+; #@! TF.GenerationSoftware,Nodalia,Circuito,0.1.0-dev
+; #@! TF.SameCoordinates,Original
+; #@! TF.FileFunction,Plated,1,2,PTH
+; #@! TF.FilePolarity,Positive
+FMAT,2
+METRIC,TZ
+; #@! TA.AperFunction,Plated,PTH,ViaDrill
+T1C0.300000
+; #@! TA.AperFunction,Plated,PTH,ComponentDrill
+T2C0.800000
+%
+G90
+G05
+T1
+X25.000000Y25.000000
+T2
+X20.000000Y40.000000
+T0
+M30

@@ -1,0 +1,103 @@
+{
+  "format_version": 1,
+  "title": "Resistor divider",
+  "sheets": [
+    {
+      "name": "Sheet1",
+      "parts": [
+        {
+          "refdes": "V1",
+          "lib_id": "V",
+          "value": "10",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "rotation": "0",
+          "mirror": false
+        },
+        {
+          "refdes": "R1",
+          "lib_id": "R",
+          "value": "1k",
+          "position": {
+            "x": 20,
+            "y": 0
+          },
+          "rotation": "0",
+          "mirror": false
+        },
+        {
+          "refdes": "R2",
+          "lib_id": "R",
+          "value": "2.2k",
+          "position": {
+            "x": 40,
+            "y": 0
+          },
+          "rotation": "0",
+          "mirror": false
+        }
+      ],
+      "wires": [],
+      "junctions": [],
+      "labels": [
+        {
+          "name": "IN",
+          "position": {
+            "x": 0,
+            "y": -4
+          },
+          "scope": "Local"
+        },
+        {
+          "name": "IN",
+          "position": {
+            "x": 20,
+            "y": -4
+          },
+          "scope": "Local"
+        },
+        {
+          "name": "OUT",
+          "position": {
+            "x": 20,
+            "y": 4
+          },
+          "scope": "Local"
+        },
+        {
+          "name": "OUT",
+          "position": {
+            "x": 40,
+            "y": -4
+          },
+          "scope": "Local"
+        }
+      ],
+      "power_ports": [
+        {
+          "name": "GND",
+          "position": {
+            "x": 0,
+            "y": 4
+          },
+          "style": "Ground"
+        },
+        {
+          "name": "GND",
+          "position": {
+            "x": 40,
+            "y": 4
+          },
+          "style": "Ground"
+        }
+      ],
+      "no_connects": []
+    }
+  ],
+  "models": [],
+  "analyses": [
+    "Op"
+  ]
+}

@@ -1,0 +1,22 @@
+[package]
+name = "circuito-sim"
+description = "Circuito's circuit simulator: modified nodal analysis with Newton-Raphson, DC, AC and transient analyses"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+circuito-core = { path = "../circuito-core" }
+thiserror.workspace = true
+# The shared numerical engine (dense LU, real and complex), pinned by revision.
+nodalia-numerics = { git = "https://github.com/getnodalia/abaco", rev = "19929a58c9a8ccfcf67b4cb2219c4bed4bbce4dd" }
+
+[dev-dependencies]
+circuito-spice = { path = "../circuito-spice" }
+proptest.workspace = true
+
+[lints]
+workspace = true

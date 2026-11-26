@@ -1,0 +1,8 @@
+RC low-pass filter, fc = 1/(2 pi R C) = 1.59 kHz
+* The AC card gives the frequency response; the transient shows the step response (tau = 100 us).
+V1 in 0 PULSE(0 1 0 1n 1n 5m 10m) AC 1
+R1 in out 1k
+C1 out 0 100n
+.ac dec 10 10 100k
+.tran 10u 1m
+.end

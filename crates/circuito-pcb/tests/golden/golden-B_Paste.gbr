@@ -1,0 +1,14 @@
+G04 Created by Nodalia Circuito 0.1.0-dev*
+%TF.GenerationSoftware,Nodalia,Circuito,0.1.0-dev*%
+%TF.SameCoordinates,Original*%
+%TF.FileFunction,Paste,Bot*%
+%TF.FilePolarity,Positive*%
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+%MOMM*%
+%LPD*%
+%ADD10R,0.400000X1.000000*%
+G75*
+D10*
+X40000000Y39000000D03*
+M02*
