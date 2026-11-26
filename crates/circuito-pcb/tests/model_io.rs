@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable,
+    clippy::field_reassign_with_default
+)]
 //! Board model validation and `.circuito-pcb` round trips.
 
 mod common;

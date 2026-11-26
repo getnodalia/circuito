@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-#![allow(dead_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![allow(
+    dead_code,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable,
+    clippy::field_reassign_with_default
+)]
 //! Helpers shared by the integration tests: a terse way to build small boards.
 
 use circuito_pcb::board::*;
@@ -78,7 +85,7 @@ pub fn via(b: &mut Board, net: Option<NetId>, at: Point, diameter: Nm, drill: Nm
 }
 
 pub fn smd_pad(
-    b: &mut Board,
+    _b: &mut Board,
     number: &str,
     net: Option<NetId>,
     pos: Point,
@@ -105,7 +112,7 @@ pub fn smd_pad(
 }
 
 pub fn th_pad(
-    b: &mut Board,
+    _b: &mut Board,
     number: &str,
     net: Option<NetId>,
     pos: Point,

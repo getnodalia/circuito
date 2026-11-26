@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::unreachable,
+    clippy::field_reassign_with_default
+)]
 //! Property tests of the exact geometry against brute-force floating point sampling.
 
 use std::cmp::Ordering;
@@ -157,7 +163,7 @@ proptest! {
 
     #[test]
     fn core_distances_obey_the_triangle_inequality(a in pt(), b in pt(), c in pt()) {
-        let d = |x: Point, y: Point| Shape::point(x, 0).gap_floor(&Shape::point(y, 0)) as i64;
+        let d = |x: Point, y: Point| Shape::point(x, 0).gap_floor(&Shape::point(y, 0));
         // floors lose at most 1 per term
         prop_assert!(d(a, c) <= d(a, b) + d(b, c) + 2);
     }

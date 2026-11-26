@@ -252,6 +252,66 @@ fn validate_ring(ring: &[Point], what: &str) -> Result<()> {
     Ok(())
 }
 
+/// True when the interiors of two simple polygons overlap (touching boundaries do not count).
+///
+/// Exact for the usual cases: any proper edge crossing, or a vertex or an edge point at 1/4, 1/2 or
+/// 3/4 strictly inside the other polygon, or identical vertex sets. Two concave polygons whose
+/// boundaries only touch along collinear stretches while their interiors still overlap could in
+/// principle be missed; courtyards (rectangles and similar convex outlines) never are.
+pub fn rings_overlap_interior(a: &[Point], b: &[Point]) -> bool {
+    let (na, nb) = (a.len(), b.len());
+    if na < 3 || nb < 3 {
+        return false;
+    }
+    let (Some(ba), Some(bb)) = (Rect::of_points(a), Rect::of_points(b)) else {
+        return false;
+    };
+    if !ba.intersects(bb) {
+        return false;
+    }
+    for i in 0..na {
+        let (p, q) = (a[i], a[(i + 1) % na]);
+        if !Rect::from_point(p).include(q).intersects(bb) {
+            continue;
+        }
+        for j in 0..nb {
+            if segments_cross_properly(p, q, b[j], b[(j + 1) % nb]) {
+                return true;
+            }
+        }
+    }
+    let scale =
+        |r: &[Point]| -> Vec<Point> { r.iter().map(|p| Point::new(p.x * 4, p.y * 4)).collect() };
+    let (a4, b4) = (scale(a), scale(b));
+    let strictly_inside = |ring4: &[Point], pts: &[Point]| -> bool {
+        let n = pts.len();
+        for i in 0..n {
+            let (p, q) = (pts[i], pts[(i + 1) % n]);
+            // points at t = 0, 1/4, 1/2, 3/4 of the edge, in 4x coordinates
+            for t in 0..4i64 {
+                let s = Point::new(p.x * (4 - t) + q.x * t, p.y * (4 - t) + q.y * t);
+                if locate_in_ring(ring4, s) == Loc::Inside {
+                    return true;
+                }
+            }
+        }
+        false
+    };
+    if strictly_inside(&b4, a) || strictly_inside(&a4, b) {
+        return true;
+    }
+    if na == nb {
+        let mut sa = a.to_vec();
+        let mut sb = b.to_vec();
+        sa.sort_unstable();
+        sb.sort_unstable();
+        if sa == sb {
+            return true;
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -311,6 +371,28 @@ mod tests {
             Point::new(2, 4),
         ];
         assert!(!ring_is_simple(&spike));
+    }
+
+    #[test]
+    fn interior_overlap() {
+        let a = sq(0, 0, 10, 10);
+        assert!(rings_overlap_interior(&a, &sq(5, 5, 15, 15)));
+        assert!(rings_overlap_interior(&a, &sq(2, 2, 4, 4)));
+        assert!(rings_overlap_interior(&a, &sq(0, 0, 10, 20)));
+        assert!(rings_overlap_interior(&a, &a));
+        assert!(
+            rings_overlap_interior(&sq(-5, 3, 15, 7), &a),
+            "plus shape crossing"
+        );
+        assert!(
+            !rings_overlap_interior(&a, &sq(10, 0, 20, 10)),
+            "shared edge"
+        );
+        assert!(
+            !rings_overlap_interior(&a, &sq(10, 10, 20, 20)),
+            "shared corner"
+        );
+        assert!(!rings_overlap_interior(&a, &sq(11, 0, 20, 10)));
     }
 
     #[test]

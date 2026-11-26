@@ -109,6 +109,26 @@ impl Layer {
         }
     }
 
+    /// The same layer on the other side of the board (`F.SilkS` becomes `B.SilkS`); layers that are
+    /// not tied to a side (inner copper, edge cuts, drill) are returned unchanged.
+    pub fn flipped(self) -> Layer {
+        match self {
+            Layer::FCu => Layer::BCu,
+            Layer::BCu => Layer::FCu,
+            Layer::FMask => Layer::BMask,
+            Layer::BMask => Layer::FMask,
+            Layer::FPaste => Layer::BPaste,
+            Layer::BPaste => Layer::FPaste,
+            Layer::FSilk => Layer::BSilk,
+            Layer::BSilk => Layer::FSilk,
+            Layer::FCourtyard => Layer::BCourtyard,
+            Layer::BCourtyard => Layer::FCourtyard,
+            Layer::FFab => Layer::BFab,
+            Layer::BFab => Layer::FFab,
+            other => other,
+        }
+    }
+
     /// Position in the copper stack for a board with `copper_layers` copper layers
     /// (`F.Cu` is 0, `B.Cu` is the last). `None` for non-copper layers or inner layers the board lacks.
     pub fn copper_index(self, copper_layers: u8) -> Option<usize> {

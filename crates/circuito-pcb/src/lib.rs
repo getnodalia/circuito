@@ -9,7 +9,9 @@
     clippy::unreachable
 )]
 
+pub mod artwork;
 pub mod board;
+pub mod drc;
 pub mod error;
 pub mod font;
 pub mod geom;
