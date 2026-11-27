@@ -46,6 +46,8 @@ pub enum Command {
     },
     /// `gerber`.
     Gerber { file: String, out_dir: String },
+    /// `import-kicad`.
+    ImportKicad { file: String, output: String },
 }
 
 /// What was wrong with the command line.
@@ -73,8 +75,9 @@ pub fn parse(args: &[String]) -> Result<Command, UsageError> {
         "netlist" => parse_netlist(rest),
         "drc" => parse_drc(rest),
         "gerber" => parse_gerber(rest),
+        "import-kicad" => parse_import_kicad(rest),
         other => usage(format!(
-            "unknown command `{other}` (commands: sim, erc, netlist, drc, gerber; try `circuito --help`)"
+            "unknown command `{other}` (commands: sim, erc, netlist, drc, gerber, import-kicad; try `circuito --help`)"
         )),
     }
 }
@@ -234,6 +237,31 @@ fn parse_drc(args: &[String]) -> Result<Command, UsageError> {
         json,
         deny_warnings: deny,
     })
+}
+
+fn parse_import_kicad(args: &[String]) -> Result<Command, UsageError> {
+    let mut c = Cursor { args, i: 0 };
+    let (mut file, mut output) = (None, None);
+    while let Some(a) = c.next() {
+        let (name, inline) = split_eq(a);
+        match name {
+            "--out" | "-o" => {
+                let v = c.value(name, inline)?;
+                set_once(&mut output, "--out", v.to_string())?;
+            }
+            _ if name.starts_with('-') && name != "-" => {
+                return usage(format!("unknown option `{name}` for `import-kicad`"));
+            }
+            _ => set_once(&mut file, "the input file", a.to_string())?,
+        }
+    }
+    let file = file.ok_or_else(|| {
+        UsageError("`import-kicad` needs a .kicad_pcb file (or `-` for stdin)".into())
+    })?;
+    let output = output.ok_or_else(|| {
+        UsageError("`import-kicad` needs --out <file.circuito-pcb> for the board".into())
+    })?;
+    Ok(Command::ImportKicad { file, output })
 }
 
 fn parse_gerber(args: &[String]) -> Result<Command, UsageError> {

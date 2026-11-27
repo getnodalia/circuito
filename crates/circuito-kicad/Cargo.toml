@@ -1,0 +1,16 @@
+[package]
+name = "circuito-kicad"
+description = "KiCad file formats for Circuito: an S-expression reader and the .kicad_pcb importer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+circuito-pcb = { path = "../circuito-pcb" }
+thiserror.workspace = true
+
+[lints]
+workspace = true

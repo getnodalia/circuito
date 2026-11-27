@@ -76,6 +76,11 @@ drawing and the code changes, edit the code and the drawing changes.
   available as JSON.
 - **PCB outputs** (`circuito-pcb`): a board model, an exact-geometry design-rules check, Gerber
   RS-274X/X2, Excellon drill, pick-and-place and BOM CSV.
+- **KiCad boards** (`circuito-kicad`, experimental): imports a `.kicad_pcb` (KiCad 7 and 8
+  syntax) into a board: nets, top-side footprints and pads, tracks, vias, zones, outline and
+  graphics. What is not imported is listed, never dropped silently. The importer was written from
+  KiCad's public file-format documentation and tested on boards written by hand, not yet on boards
+  made by KiCad.
 - **Engineering values** such as `4.7k` and `100n`, source waveforms and a 19-part library
   (`circuito-core`).
 
@@ -127,8 +132,8 @@ cargo fmt --all -- --check && cargo clippy --workspace --all-targets --locked --
 
 ## Command line
 
-`circuito` runs the same engines without the interface: `sim`, `erc`, `netlist`, `drc` and
-`gerber`, with table, CSV or JSON output.
+`circuito` runs the same engines without the interface: `sim`, `erc`, `netlist`, `drc`,
+`gerber` and `import-kicad`, with table, CSV or JSON output.
 
 ```console
 $ circuito sim examples/divider.circuito

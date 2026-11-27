@@ -675,3 +675,68 @@ fn gerber_rejects_bad_input_and_writes_nothing() {
     assert_eq!(code(&o), 2);
     assert!(errtext(&o).contains("--out"));
 }
+
+const KICAD_BOARD: &str = r#"(kicad_pcb (version 20240108) (generator "pcbnew")
+  (layers (0 "F.Cu" signal) (31 "B.Cu" signal) (44 "Edge.Cuts" user))
+  (net 0 "") (net 1 "GND")
+  (footprint "Lib:R_0603" (layer "F.Cu") (at 10 10)
+    (property "Reference" "R1") (property "Value" "10k")
+    (pad "1" smd rect (at -0.8 0) (size 0.8 0.9) (layers "F.Cu" "F.Paste" "F.Mask") (net 1 "GND"))
+    (pad "2" smd rect (at 0.8 0) (size 0.8 0.9) (layers "F.Cu" "F.Paste" "F.Mask")))
+  (segment (start 9.2 10) (end 5 10) (width 0.25) (layer "F.Cu") (net 1))
+  (gr_rect (start 0 0) (end 20 20) (stroke (width 0.1) (type default)) (fill none) (layer "Edge.Cuts"))
+  (dimension (type aligned)))
+"#;
+
+#[test]
+fn a_kicad_board_is_converted_and_the_engine_runs_on_it() {
+    let dir = scratch("kicad");
+    std::fs::create_dir_all(&dir).unwrap();
+    let src = dir.join("demo.kicad_pcb");
+    let dst = dir.join("demo.circuito-pcb");
+    std::fs::write(&src, KICAD_BOARD).unwrap();
+    let o = run(&[
+        "import-kicad",
+        src.to_str().unwrap(),
+        "--out",
+        dst.to_str().unwrap(),
+    ]);
+    assert_eq!(code(&o), 0, "{}", errtext(&o));
+    assert!(
+        out(&o).contains("1 footprint(s), 1 track(s)"),
+        "{}",
+        out(&o)
+    );
+    assert!(
+        errtext(&o).contains("dimension"),
+        "unimported items are reported: {}",
+        errtext(&o)
+    );
+    let o = run(&[
+        "gerber",
+        dst.to_str().unwrap(),
+        "--out",
+        dir.join("fab").to_str().unwrap(),
+    ]);
+    assert_eq!(code(&o), 0, "{}", errtext(&o));
+    assert!(dir.join("fab").read_dir().unwrap().count() >= 5);
+    let o = run(&["drc", dst.to_str().unwrap()]);
+    assert!(matches!(code(&o), 0 | 1), "{}", errtext(&o));
+}
+
+#[test]
+fn import_kicad_refuses_other_files_and_missing_arguments() {
+    let dir = scratch("kicad-bad");
+    std::fs::create_dir_all(&dir).unwrap();
+    let src = dir.join("x.kicad_pcb");
+    std::fs::write(&src, "(kicad_sch (version 1))").unwrap();
+    let o = run(&[
+        "import-kicad",
+        src.to_str().unwrap(),
+        "--out",
+        dir.join("y.circuito-pcb").to_str().unwrap(),
+    ]);
+    assert_eq!(code(&o), 1);
+    assert!(errtext(&o).contains("not a KiCad board"), "{}", errtext(&o));
+    assert_eq!(code(&run(&["import-kicad", src.to_str().unwrap()])), 2);
+}

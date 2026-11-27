@@ -31,6 +31,7 @@ USAGE
   circuito netlist <file.circuito|file.circ> [-o <out>]
   circuito drc <board.circuito-pcb> [--profile <name>] [--json] [--deny-warnings]
   circuito gerber <board.circuito-pcb> --out <dir>
+  circuito import-kicad <board.kicad_pcb> --out <board.circuito-pcb>
   circuito --help | --version
 
 COMMANDS
@@ -46,6 +47,10 @@ COMMANDS
            has errors (or warnings with --deny-warnings).
   gerber   Write the manufacturing files of a board into <dir>: Gerber RS-274X/X2 for every
            layer, Excellon drills, pick-and-place and bill of materials CSV.
+
+  import-kicad  Convert a KiCad board (.kicad_pcb, KiCad 7 and 8) into a .circuito-pcb board.
+           Whatever is not imported exactly is listed on standard error. The importer is
+           experimental: it has not been checked against boards made by KiCad itself.
 
 A file name of - reads standard input. Exit codes: 0 ok, 1 failed, 2 bad command line.
 ";
@@ -110,6 +115,9 @@ pub fn run_with_stdin(
             err,
         ),
         Command::Gerber { file, out_dir } => pcb::cmd_gerber(&file, &out_dir, stdin, out, err),
+        Command::ImportKicad { file, output } => {
+            pcb::cmd_import_kicad(&file, &output, stdin, out, err)
+        }
     }
 }
 

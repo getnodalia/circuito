@@ -18,6 +18,8 @@ functional, validated (against analytic or published references), production-mat
 | egui app: open, view, rules check, simulate, plots | Partially functional; checked by hand under a virtual display on Linux only |
 | Circuit code (`.circ`): text to drawing and back | Functional; round-trips and simulates like the drawn circuit in tests, random text never panics |
 | Schematic editor: place, wire, move, rotate, mirror, edit, copy/paste, undo, save | Partially functional; the editing steps are unit-tested, the mouse interactions were checked by hand under a virtual display on Linux only; one sheet at a time |
+| KiCad: `.kicad_pcb` import (`import-kicad`) | Experimental: tested on boards written by hand from the public format; not yet on boards made by KiCad; bottom-side footprints, footprint arcs and net classes are not imported |
+| KiCad: schematics (`.kicad_sch`), symbol libraries, export | Planned |
 | PCB editor | Planned |
 | `.noise`, `.step`, Monte Carlo, `.ic`/`.nodeset` | Planned |
 | Zone fill, autorouting, differential-pair rules | Planned |
