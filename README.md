@@ -93,6 +93,8 @@ Packages for Linux, macOS and Windows are on the
 [getnodalia.com/circuito](https://getnodalia.com/circuito). None is signed with a developer
 certificate, so the first start asks you to confirm.
 
+[Nodalia Launcher](https://getnodalia.com/launcher) installs it and keeps it up to date too.
+
 | System | File | Notes |
 |---|---|---|
 | Linux x86_64 | `circuito-<version>-linux-x86_64.AppImage` | Make it executable and run it. |
