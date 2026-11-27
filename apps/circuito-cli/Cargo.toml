@@ -11,6 +11,7 @@ authors.workspace = true
 [dependencies]
 circuito-core = { path = "../../crates/circuito-core" }
 circuito-erc = { path = "../../crates/circuito-erc" }
+circuito-kicad = { path = "../../crates/circuito-kicad" }
 circuito-pcb = { path = "../../crates/circuito-pcb" }
 circuito-script = { path = "../../crates/circuito-script" }
 circuito-spice = { path = "../../crates/circuito-spice" }

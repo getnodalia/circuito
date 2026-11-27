@@ -641,6 +641,7 @@ version = "0.2.0"
 dependencies = [
  "circuito-core",
  "circuito-erc",
+ "circuito-kicad",
  "circuito-pcb",
  "circuito-script",
  "circuito-sim",
@@ -665,6 +666,14 @@ dependencies = [
  "circuito-core",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "circuito-kicad"
+version = "0.2.0"
+dependencies = [
+ "circuito-pcb",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

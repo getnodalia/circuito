@@ -236,3 +236,59 @@ pub(crate) fn cmd_gerber(
     let _ = writeln!(out, "{} file(s) written to {out_dir}", files.len());
     0
 }
+
+pub(crate) fn cmd_import_kicad(
+    file: &str,
+    output: &str,
+    stdin: &mut dyn Read,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> i32 {
+    let text = match load::read_text(file, stdin) {
+        Ok(t) => t,
+        Err(e) => return fail(err, &e),
+    };
+    let name = Path::new(file)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .filter(|s| *s != "-")
+        .unwrap_or("board");
+    let imported = match circuito_kicad::pcb::import(&text, name) {
+        Ok(i) => i,
+        Err(e) => return fail(err, &format!("{file}: {e}")),
+    };
+    let json = match imported.board.to_json() {
+        Ok(j) => j,
+        Err(e) => return fail(err, &format!("{file}: {e}")),
+    };
+    for w in &imported.warnings {
+        let _ = writeln!(err, "circuito: warning: {file}: {w}");
+    }
+    let path = Path::new(output);
+    let (dir, name) = match (path.parent(), path.file_name().and_then(|n| n.to_str())) {
+        (Some(d), Some(n)) => (
+            if d.as_os_str().is_empty() {
+                Path::new(".")
+            } else {
+                d
+            },
+            n,
+        ),
+        _ => return fail(err, &format!("{output} is not a file name")),
+    };
+    if let Err(e) = write_file(dir, name, &json) {
+        return fail(err, &e);
+    }
+    let b = &imported.board;
+    let _ = writeln!(
+        out,
+        "{output}: {} footprint(s), {} track(s), {} via(s), {} zone(s), {} net(s), {} warning(s)",
+        b.footprints.len(),
+        b.tracks.len(),
+        b.vias.len(),
+        b.zones.len(),
+        b.nets.len(),
+        imported.warnings.len()
+    );
+    0
+}
